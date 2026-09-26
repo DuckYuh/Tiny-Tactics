@@ -1,4 +1,4 @@
-﻿using AoEMini.Army;
+using AoEMini.Army;
 using AoEMini.Selection;
 using UnityEngine;
 using UnityEngine.UI;
@@ -191,25 +191,22 @@ namespace AoEMini.Input
             Vector2 screenPosition =
                 _input.Player.Point.ReadValue<Vector2>();
 
-            Ray ray =
-                _mainCamera.ScreenPointToRay(screenPosition);
+            // Chuyển đổi tọa độ màn hình sang tọa độ thế giới (World Space) 2D
+            float distanceFromCamera = Mathf.Abs(_mainCamera.transform.position.z);
+            Vector3 screenPointWithDistance = new Vector3(screenPosition.x, screenPosition.y, distanceFromCamera);
+            Vector3 targetWorldPosition = _mainCamera.ScreenToWorldPoint(screenPointWithDistance);
+            targetWorldPosition.z = 0f; // Khóa trục Z cho 2D
 
-            Debug.Log(
-                $"Ray Origin: {ray.origin}, Direction: {ray.direction}");
+            Debug.Log($"Right Click: Tọa độ đích {targetWorldPosition}");
 
-            if (Physics.Raycast(
-                    ray,
-                    out RaycastHit hit,
-                    1000f))
+            if (TinyTactics.Units.RTSUnitManager.Instance != null)
             {
-                Debug.Log(
-                    $"Right Click Hit: {hit.collider.name}, " +
-                    $"World Position: {hit.point}");
-
-                return;
+                TinyTactics.Units.RTSUnitManager.Instance.CommandMoveTo(targetWorldPosition);
             }
-
-            Debug.Log("Right Click: No world position found.");
+            else
+            {
+                Debug.LogWarning("Không tìm thấy RTSUnitManager trong Scene!");
+            }
         }
 
         // =========================================================
@@ -258,19 +255,17 @@ namespace AoEMini.Input
             if (_mainCamera == null)
                 return null;
 
-            Ray ray =
-                _mainCamera.ScreenPointToRay(screenPosition);
+            Vector3 worldPoint = _mainCamera.ScreenToWorldPoint(screenPosition);
+            Vector2 worldPoint2D = new Vector2(worldPoint.x, worldPoint.y);
 
-            if (!Physics.Raycast(
-                    ray,
-                    out RaycastHit hit,
-                    Mathf.Infinity))
+            Collider2D hit = Physics2D.OverlapPoint(worldPoint2D);
+
+            if (hit != null)
             {
-                return null;
+                return hit.GetComponentInParent<SelectableUnit>();
             }
 
-            return hit.collider
-                .GetComponentInParent<SelectableUnit>();
+            return null;
         }
 
         // =========================================================

@@ -42,17 +42,7 @@ namespace TinyTactics.Units
             pathfindingService = new Pathfinding.Pathfinding();
         }
 
-        private void Start()
-        {
-            // Tự động đăng ký vào danh sách selectedUnits của RTSUnitManager để test nhanh
-            if (RTSUnitManager.Instance != null)
-            {
-                if (!RTSUnitManager.Instance.selectedUnits.Contains(this))
-                {
-                    RTSUnitManager.Instance.selectedUnits.Add(this);
-                }
-            }
-        }
+
 
         private void Update()
         {

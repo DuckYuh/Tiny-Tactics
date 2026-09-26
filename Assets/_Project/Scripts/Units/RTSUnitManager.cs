@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.InputSystem;
+using AoEMini.Selection;
 
 namespace TinyTactics.Units
 {
@@ -12,10 +12,6 @@ namespace TinyTactics.Units
     {
         // Singleton pattern cho Main Thread
         public static RTSUnitManager Instance { get; private set; }
-
-        [Header("Selection Configuration")]
-        [Tooltip("Danh sách các đơn vị quân đang được người chơi chọn")]
-        public List<UnitController> selectedUnits = new List<UnitController>();
 
         [Header("Formation Configuration")]
         [Tooltip("Khoảng cách giãn cách giữa các đơn vị khi phân bổ đội hình")]
@@ -36,48 +32,34 @@ namespace TinyTactics.Units
             Instance = this;
         }
 
-        private void Update()
-        {
-            HandleMovementInput();
-        }
-
         /// <summary>
-        /// Bắt sự kiện click chuột phải từ Unity New Input System để ra lệnh di chuyển cho toàn bộ đơn vị được chọn.
+        /// Ra lệnh di chuyển cho toàn bộ đơn vị được chọn.
+        /// Được gọi từ InputController khi người chơi click chuột phải.
         /// </summary>
-        private void HandleMovementInput()
+        public void CommandMoveTo(Vector3 targetWorldPosition)
         {
-            // Kiểm tra chuột và sự kiện click chuột phải trong frame hiện tại
-            if (Mouse.current == null || !Mouse.current.rightButton.wasPressedThisFrame)
-            {
+            if (SelectionSystem.Instance == null)
                 return;
+
+            IReadOnlyList<SelectableUnit> selectedSelectables = SelectionSystem.Instance.SelectedUnits;
+            if (selectedSelectables.Count == 0)
+                return;
+
+            // Lọc ra các UnitController từ danh sách được chọn
+            List<UnitController> activeUnits = new List<UnitController>();
+            for (int i = 0; i < selectedSelectables.Count; i++)
+            {
+                if (selectedSelectables[i] != null)
+                {
+                    UnitController controller = selectedSelectables[i].GetComponent<UnitController>();
+                    if (controller != null)
+                    {
+                        activeUnits.Add(controller);
+                    }
+                }
             }
 
-            // Nếu không có đơn vị nào được chọn thì không xử lý tiếp
-            if (selectedUnits == null || selectedUnits.Count == 0)
-            {
-                return;
-            }
-
-            // Lấy tọa độ màn hình từ Input System
-            Vector2 mouseScreenPosition = Mouse.current.position.ReadValue();
-
-            // Chuyển đổi sang tọa độ thế giới (World Space) 2D
-            if (Camera.main == null)
-            {
-                Debug.LogWarning("[RTSUnitManager] Không tìm thấy Camera.main để tính toán tọa độ thế giới!");
-                return;
-            }
-
-            // Khoảng cách từ Camera đến mặt phẳng z = 0 để ScreenToWorldPoint tính chính xác
-            float distanceFromCamera = Mathf.Abs(Camera.main.transform.position.z);
-            Vector3 screenPointWithDistance = new Vector3(mouseScreenPosition.x, mouseScreenPosition.y, distanceFromCamera);
-            Vector3 targetWorldPosition = Camera.main.ScreenToWorldPoint(screenPointWithDistance);
-            targetWorldPosition.z = 0f; // Khóa trục z cho không gian 2D
-
-            // Loại bỏ các phần tử null khỏi danh sách trước khi ra lệnh
-            selectedUnits.RemoveAll(unit => unit == null);
-
-            int unitCount = selectedUnits.Count;
+            int unitCount = activeUnits.Count;
             if (unitCount == 0) return;
 
             // Tính toán mảng điểm đến theo đội hình
@@ -86,11 +68,10 @@ namespace TinyTactics.Units
             // Gửi lệnh di chuyển đến từng đơn vị tương ứng
             for (int i = 0; i < unitCount; i++)
             {
-                if (selectedUnits[i] != null)
-                {
-                    selectedUnits[i].MoveTo(formationPositions[i]);
-                }
+                activeUnits[i].MoveTo(formationPositions[i]);
             }
+            
+            Debug.Log($"[RTSUnitManager] Đã ra lệnh di chuyển {unitCount} đơn vị tới {targetWorldPosition}");
         }
 
         /// <summary>
@@ -136,18 +117,6 @@ namespace TinyTactics.Units
             }
 
             return positions;
-        }
-
-        /// <summary>
-        /// Hàm hỗ trợ đăng ký/hủy chọn đơn vị từ SelectionSystem bên ngoài
-        /// </summary>
-        public void SetSelectedUnits(List<UnitController> newSelection)
-        {
-            selectedUnits.Clear();
-            if (newSelection != null)
-            {
-                selectedUnits.AddRange(newSelection);
-            }
         }
     }
 }
