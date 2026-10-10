@@ -1,4 +1,5 @@
 using UnityEngine;
+using TinyTactics.Pathfinding;
 
 namespace TinyTactics.Economy
 {
@@ -26,7 +27,7 @@ namespace TinyTactics.Economy
         [Tooltip("Số lượng tài nguyên thu thập được mỗi chu kỳ")]
         public int amountPerCycle = 2;
 
-        public event System.Action OnDepleted;
+        public event System.Action<ResourceDeposit> OnDepleted;
 
         /// <summary>
         /// Nông dân gọi hàm này để khai thác tài nguyên.
@@ -47,8 +48,15 @@ namespace TinyTactics.Economy
 
             if (currentAmount <= 0)
             {
-                OnDepleted?.Invoke();
-                Destroy(gameObject); // Huỷ object khi cạn kiệt (có thể đổi thành Pool sau này)
+                OnDepleted?.Invoke(this);
+                
+                // Mở khoá ô lưới Grid để có thể đi qua lại
+                if (PathfindingGrid.Instance != null)
+                {
+                    PathfindingGrid.Instance.UpdateNodeWalkable(transform.position, true);
+                }
+                
+                Destroy(gameObject); // Huỷ object khi cạn kiệt
             }
 
             return true;
