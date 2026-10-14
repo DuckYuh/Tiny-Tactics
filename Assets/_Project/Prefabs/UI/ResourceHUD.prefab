@@ -852,6 +852,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4864967609490870426}
+  - component: {fileID: 689466792128286193}
   - component: {fileID: 717167234802451988}
   m_Layer: 5
   m_Name: ResourceHUD
@@ -880,6 +881,14 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: -25}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!222 &689466792128286193
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9031249460613633913}
+  m_CullTransparentMesh: 1
 --- !u!114 &717167234802451988
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 64e1a8014af59064d8d4add6ec7d5172, type: 3}
+  m_Name: ArcheryData
+  m_EditorClassIdentifier: 
+  buildingName: Archery
+  factionPrefabs:
+  - factionId: Blue
+    prefab: {fileID: 7663764298266089743, guid: a849de8e08915a444aab7e31b40cbc1b, type: 3}
+  - factionId: Red
+    prefab: {fileID: 833917441977603151, guid: 978f3a7e2878e3247b3cd2c241ea911b, type: 3}
+  footprint: {x: 3, y: 3}
+  woodCost: 100
+  buildingIcon: {fileID: 21300000, guid: 2bb7266a2b9e4494db34c60ba04a19a4, type: 3}

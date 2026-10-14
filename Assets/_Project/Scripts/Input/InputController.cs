@@ -1,6 +1,10 @@
 using AoEMini.Army;
 using AoEMini.Selection;
+using System.Collections.Generic;
+using TinyTactics.Buildings;
+using TinyTactics.Input;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace AoEMini.Input
@@ -28,6 +32,10 @@ namespace AoEMini.Input
         [Header("Selection")]
         [SerializeField] private float _dragThreshold = 8f;
 
+        [Header("Building Selection")]
+        [SerializeField]
+        private BuildingDemolitionController _buildingDemolition;
+
         private GameInputActions _input;
 
         private Vector2 _selectionStart;
@@ -35,6 +43,11 @@ namespace AoEMini.Input
 
         private bool _isSelecting;
         private bool _isDragging;
+
+        private readonly List<RaycastResult> _uiRaycastResults =
+            new List<RaycastResult>(16);
+
+        private PointerEventData _uiPointerEventData;
 
         private void Awake()
         {
@@ -106,6 +119,38 @@ namespace AoEMini.Input
         // MOUSE INPUT
         // =========================================================
 
+        /// <summary>
+        /// Kiểm tra vị trí màn hình có đang nằm trên UI
+        /// nhận Raycast hay không.
+        /// Dùng được trong InputAction callback.
+        /// </summary>
+        private bool IsPointerOverUI(Vector2 screenPosition)
+        {
+            EventSystem eventSystem = EventSystem.current;
+
+            if (eventSystem == null)
+                return false;
+
+            if (_uiPointerEventData == null)
+            {
+                _uiPointerEventData = new PointerEventData(eventSystem);
+            }
+
+            _uiPointerEventData.position = screenPosition;
+
+            _uiRaycastResults.Clear();
+
+            eventSystem.RaycastAll(
+                _uiPointerEventData,
+                _uiRaycastResults);
+
+            bool isOverUI = _uiRaycastResults.Count > 0;
+
+            _uiRaycastResults.Clear();
+
+            return isOverUI;
+        }
+
         private void UpdateMousePosition()
         {
             _currentMousePosition =
@@ -114,6 +159,14 @@ namespace AoEMini.Input
 
         private void UpdateDragState()
         {
+            if (RTSInputMode.IsWorldInputBlocked)
+            {
+                _isSelecting = false;
+                _isDragging = false;
+                HideSelectionBox();
+                return;
+            }
+
             if (!_isSelecting)
                 return;
 
@@ -142,12 +195,19 @@ namespace AoEMini.Input
             }
         }
 
-        private void OnSelectStarted(
-            UnityEngine.InputSystem.InputAction.CallbackContext context)
+        private void OnSelectStarted(UnityEngine.InputSystem.InputAction.CallbackContext context)
         {
-            _selectionStart =
+            if (RTSInputMode.IsWorldInputBlocked)
+                return;
+
+            Vector2 screenPosition =
                 _input.Player.Point.ReadValue<Vector2>();
 
+            // Không bắt đầu chọn Unit/Building nếu click lên UI.
+            if (IsPointerOverUI(screenPosition))
+                return;
+
+            _selectionStart = screenPosition;
             _isSelecting = true;
             _isDragging = false;
         }
@@ -158,19 +218,22 @@ namespace AoEMini.Input
             if (!_isSelecting)
                 return;
 
+            // Luôn dọn trạng thái kéo trước.
+            if (RTSInputMode.IsWorldInputBlocked)
+            {
+                _isSelecting = false;
+                _isDragging = false;
+                HideSelectionBox();
+                return;
+            }
+
             Vector2 selectionEnd =
                 _input.Player.Point.ReadValue<Vector2>();
 
             if (_isDragging)
-            {
-                HandleDragSelection(
-                    _selectionStart,
-                    selectionEnd);
-            }
+                HandleDragSelection(_selectionStart, selectionEnd);
             else
-            {
                 HandleSingleSelection(selectionEnd);
-            }
 
             _isSelecting = false;
             _isDragging = false;
@@ -186,6 +249,9 @@ namespace AoEMini.Input
             UnityEngine.InputSystem.InputAction.CallbackContext context)
         {
             if (_mainCamera == null)
+                return;
+
+            if (RTSInputMode.IsWorldInputBlocked)
                 return;
 
             Vector2 screenPosition =
@@ -213,35 +279,52 @@ namespace AoEMini.Input
         // SELECTION
         // =========================================================
 
-        private void HandleSingleSelection(
-            Vector2 screenPosition)
+        private void HandleSingleSelection(Vector2 screenPosition)
         {
+            if (RTSInputMode.IsWorldInputBlocked)
+                return;
+
+            // Bỏ IsPointerOverGameObject() để tránh warning.
+            if (IsPointerOverUI(screenPosition))
+                return;
+
             if (SelectionSystem.Instance == null)
                 return;
 
+            // Ưu tiên chọn Unit.
             SelectableUnit unit =
                 FindUnitAtScreenPosition(screenPosition);
 
             if (unit != null)
             {
+                _buildingDemolition?.ClearSelection();
                 SelectionSystem.Instance.SelectSingle(unit);
+                return;
             }
-            else
+
+            // Nếu không có Unit, kiểm tra Building.
+            if (_buildingDemolition != null &&
+                _buildingDemolition.TrySelectAtScreenPosition(screenPosition))
             {
-                // Click empty area -> clear selection.
                 SelectionSystem.Instance.ClearSelection();
+                return;
             }
+
+            // Click vùng trống.
+            _buildingDemolition?.ClearSelection();
+            SelectionSystem.Instance.ClearSelection();
         }
 
-        private void HandleDragSelection(
-            Vector2 start,
-            Vector2 end)
+        private void HandleDragSelection(Vector2 start, Vector2 end)
         {
-            if (SelectionSystem.Instance == null)
+            if (RTSInputMode.IsWorldInputBlocked)
                 return;
 
-            if (_mainCamera == null)
+            if (SelectionSystem.Instance == null || _mainCamera == null)
                 return;
+
+            // Khi quét chọn Unit, bỏ chọn Building.
+            _buildingDemolition?.ClearSelection();
 
             SelectionSystem.Instance.SelectInRectangle(
                 start,
@@ -395,6 +478,8 @@ namespace AoEMini.Input
 
             _isSelecting = false;
             _isDragging = false;
+
+            _buildingDemolition?.ClearSelection();
 
             HideSelectionBox();
         }
