@@ -6,6 +6,8 @@ using TinyTactics.Input;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using TinyTactics.Economy;
+using TinyTactics.Units;
 
 namespace AoEMini.Input
 {
@@ -246,7 +248,7 @@ namespace AoEMini.Input
         // =========================================================
 
         private void OnCommand(
-            UnityEngine.InputSystem.InputAction.CallbackContext context)
+    UnityEngine.InputSystem.InputAction.CallbackContext context)
         {
             if (_mainCamera == null)
                 return;
@@ -254,25 +256,57 @@ namespace AoEMini.Input
             if (RTSInputMode.IsWorldInputBlocked)
                 return;
 
+            if (RTSUnitManager.Instance == null)
+            {
+                Debug.LogWarning(
+                    "InputController: RTSUnitManager not found!"
+                );
+                return;
+            }
+
             Vector2 screenPosition =
                 _input.Player.Point.ReadValue<Vector2>();
 
-            // Chuyển đổi tọa độ màn hình sang tọa độ thế giới (World Space) 2D
-            float distanceFromCamera = Mathf.Abs(_mainCamera.transform.position.z);
-            Vector3 screenPointWithDistance = new Vector3(screenPosition.x, screenPosition.y, distanceFromCamera);
-            Vector3 targetWorldPosition = _mainCamera.ScreenToWorldPoint(screenPointWithDistance);
-            targetWorldPosition.z = 0f; // Khóa trục Z cho 2D
+            // Ngăn click phải xuyên qua các UI có raycast.
+            if (IsPointerOverUI(screenPosition))
+                return;
 
-            Debug.Log($"Right Click: Tọa độ đích {targetWorldPosition}");
+            float distanceFromCamera =
+                Mathf.Abs(_mainCamera.transform.position.z);
 
-            if (TinyTactics.Units.RTSUnitManager.Instance != null)
+            Vector3 screenPoint = new Vector3(
+                screenPosition.x,
+                screenPosition.y,
+                distanceFromCamera
+            );
+
+            Vector3 worldPosition =
+                _mainCamera.ScreenToWorldPoint(screenPoint);
+
+            worldPosition.z = 0f;
+
+            // Kiểm tra có tài nguyên tại vị trí click hay không.
+            // Dùng OverlapPointAll để không bỏ sót resource
+            // khi nhiều Collider2D chồng lên nhau.
+            Collider2D[] hits = Physics2D.OverlapPointAll(
+                (Vector2)worldPosition
+            );
+
+            for (int i = 0; i < hits.Length; i++)
             {
-                TinyTactics.Units.RTSUnitManager.Instance.CommandMoveTo(targetWorldPosition);
+                ResourceDeposit resource =
+                    hits[i].GetComponentInParent<ResourceDeposit>();
+
+                if (resource == null || resource.currentAmount <= 0)
+                    continue;
+
+                // Click tài nguyên -> ra lệnh khai thác.
+                RTSUnitManager.Instance.CommandHarvest(resource);
+                return;
             }
-            else
-            {
-                Debug.LogWarning("Không tìm thấy RTSUnitManager trong Scene!");
-            }
+
+            // Không click tài nguyên -> di chuyển thông thường.
+            RTSUnitManager.Instance.CommandMoveTo(worldPosition);
         }
 
         // =========================================================

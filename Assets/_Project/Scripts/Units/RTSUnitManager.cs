@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using AoEMini.Selection;
+using TinyTactics.Economy;
 
 namespace TinyTactics.Units
 {
@@ -117,6 +118,48 @@ namespace TinyTactics.Units
             }
 
             return positions;
+        }
+
+        /// <summary>
+        /// Ra lệnh cho các nông dân đang được chọn
+        /// khai thác một ResourceDeposit.
+        /// Các unit không có WorkerFSM sẽ bị bỏ qua.
+        /// </summary>
+        public void CommandHarvest(ResourceDeposit resource)
+        {
+            if (resource == null || resource.currentAmount <= 0)
+                return;
+
+            if (SelectionSystem.Instance == null)
+                return;
+
+            IReadOnlyList<SelectableUnit> selectedUnits =
+                SelectionSystem.Instance.SelectedUnits;
+
+            int assignedWorkers = 0;
+
+            for (int i = 0; i < selectedUnits.Count; i++)
+            {
+                SelectableUnit selected = selectedUnits[i];
+
+                if (selected == null)
+                    continue;
+
+                // Chỉ nông dân mới được thực hiện lệnh khai thác.
+                WorkerFSM worker = selected.GetComponent<WorkerFSM>();
+
+                if (worker == null)
+                    continue;
+
+                worker.AssignToResource(resource);
+                assignedWorkers++;
+            }
+
+            Debug.Log(
+                $"[RTSUnitManager] Harvest command sent to " +
+                $"{assignedWorkers} worker(s). " +
+                $"Resource: {resource.resourceType}"
+            );
         }
     }
 }

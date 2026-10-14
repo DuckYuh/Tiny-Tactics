@@ -29,7 +29,7 @@ namespace TinyTactics.Economy
             resources = new Dictionary<ResourceType, int>
             {
                 { ResourceType.Meat, 100 },
-                { ResourceType.Wood, 500 },
+                { ResourceType.Wood, 150 },
                 { ResourceType.Gold, 50 }
             };
         }
