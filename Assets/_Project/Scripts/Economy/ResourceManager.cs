@@ -28,9 +28,9 @@ namespace TinyTactics.Economy
             // Khởi tạo kho mặc định
             resources = new Dictionary<ResourceType, int>
             {
-                { ResourceType.Meat, 0 },
-                { ResourceType.Wood, 0 },
-                { ResourceType.Gold, 0 }
+                { ResourceType.Meat, 100 },
+                { ResourceType.Wood, 150 },
+                { ResourceType.Gold, 50 }
             };
         }
 
