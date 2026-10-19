@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 6807460588080019396}
   - component: {fileID: 4554533158205096232}
   - component: {fileID: 6757104417880954817}
+  - component: {fileID: -738101813614319840}
   m_Layer: 11
   m_Name: RedTower
   m_TagString: Untagged
@@ -128,5 +129,20 @@ BoxCollider2D:
     adaptiveTiling: 0
   m_AutoTiling: 0
   serializedVersion: 2
-  m_Size: {x: 2, y: 1}
+  m_Size: {x: 2, y: 2}
   m_EdgeRadius: 0
+--- !u!114 &-738101813614319840
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9053222321023340351}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a44457fdf9317154788d4b3ece467171, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  targetType: 1
+  factionId: Red
+  markerPosition: {fileID: 0}
