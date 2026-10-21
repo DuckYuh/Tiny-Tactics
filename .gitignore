@@ -13,6 +13,7 @@
 .gradle/
 *.csproj
 *.sln
+*.slnx
 *.suo
 *.user
 *.userprefs
