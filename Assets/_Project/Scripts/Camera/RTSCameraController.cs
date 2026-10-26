@@ -39,6 +39,9 @@ namespace TinyTactics.CameraSystem
 
         private Camera _camera;
 
+        public Camera MainCamera => _camera;
+        public Rect MapBounds => mapBounds;
+
         private void Awake()
         {
             _camera = GetComponent<Camera>();
@@ -179,6 +182,21 @@ namespace TinyTactics.CameraSystem
                 mapBounds.center,
                 mapBounds.size
             );
+        }
+
+        /// <summary>
+        /// Di chuyển Camera đến vị trí được chỉ định.
+        /// Giữ nguyên tọa độ Z và giới hạn trong Map.
+        /// </summary>
+        public void MoveToPosition(Vector2 worldPosition)
+        {
+            transform.position = new Vector3(
+                worldPosition.x,
+                worldPosition.y,
+                transform.position.z
+            );
+
+            ClampCameraPosition();
         }
 #endif
     }
