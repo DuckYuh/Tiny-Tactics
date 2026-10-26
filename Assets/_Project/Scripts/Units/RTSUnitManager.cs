@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using AoEMini.Selection;
 using TinyTactics.Economy;
+using System;
 
 namespace TinyTactics.Units
 {
@@ -20,6 +21,11 @@ namespace TinyTactics.Units
 
         // Góc vàng (Golden Angle tính bằng Radian ~ 137.5 độ) dùng cho thuật toán Sunflower Spiral
         private const float GOLDEN_ANGLE = 2.39996323f;
+
+        /// <summary>
+        /// Thông báo khi lệnh di chuyển đã được gửi cho Unit.
+        /// </summary>
+        public event Action MoveCommandIssued;
 
         private void Awake()
         {
@@ -71,6 +77,9 @@ namespace TinyTactics.Units
             {
                 activeUnits[i].MoveTo(formationPositions[i]);
             }
+
+            // Chỉ gửi một event cho toàn bộ đội hình.
+            MoveCommandIssued?.Invoke();
             
             Debug.Log($"[RTSUnitManager] Đã ra lệnh di chuyển {unitCount} đơn vị tới {targetWorldPosition}");
         }
