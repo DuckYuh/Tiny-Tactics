@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 7865200045437747654}
   - component: {fileID: 5549093170195532131}
   - component: {fileID: 6349710584691238102}
+  - component: {fileID: 1108811367119517603}
   m_Layer: 11
   m_Name: RedCastle
   m_TagString: Untagged
@@ -129,7 +130,7 @@ BoxCollider2D:
     adaptiveTiling: 0
   m_AutoTiling: 0
   serializedVersion: 2
-  m_Size: {x: 2, y: 1}
+  m_Size: {x: 3, y: 2}
   m_EdgeRadius: 0
 --- !u!114 &6349710584691238102
 MonoBehaviour:
@@ -143,3 +144,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 913e96b3b4a62354da3f970abcb3f352, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &1108811367119517603
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5793857773487302034}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a44457fdf9317154788d4b3ece467171, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  targetType: 1
+  factionId: Red
+  markerPosition: {fileID: 0}
