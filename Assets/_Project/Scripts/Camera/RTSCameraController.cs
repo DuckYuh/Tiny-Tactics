@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 
@@ -57,12 +57,51 @@ namespace TinyTactics.CameraSystem
             );
         }
 
+        private Vector3 _shakeOffset = Vector3.zero;
+        private Coroutine _shakeCoroutine;
+
         private void LateUpdate()
         {
             HandleEdgeScrolling();
             HandleZoom();
 
             ClampCameraPosition();
+
+            if (_shakeOffset != Vector3.zero)
+            {
+                transform.position += _shakeOffset;
+            }
+        }
+
+        /// <summary>
+        /// Kích hoạt hiệu ứng rung màn hình (Camera Shake) khi công trình bị phá hủy hoặc nhận chấn động mạnh.
+        /// </summary>
+        public void Shake(float duration = 0.25f, float magnitude = 0.15f)
+        {
+            if (_shakeCoroutine != null)
+            {
+                StopCoroutine(_shakeCoroutine);
+            }
+
+            _shakeCoroutine = StartCoroutine(ShakeCoroutine(duration, magnitude));
+        }
+
+        private System.Collections.IEnumerator ShakeCoroutine(float duration, float magnitude)
+        {
+            float elapsed = 0f;
+
+            while (elapsed < duration)
+            {
+                float x = Random.Range(-1f, 1f) * magnitude;
+                float y = Random.Range(-1f, 1f) * magnitude;
+                _shakeOffset = new Vector3(x, y, 0f);
+
+                elapsed += Time.deltaTime;
+                yield return null;
+            }
+
+            _shakeOffset = Vector3.zero;
+            _shakeCoroutine = null;
         }
 
         /// <summary>
@@ -175,15 +214,6 @@ namespace TinyTactics.CameraSystem
             );
         }
 
-#if UNITY_EDITOR
-        private void OnDrawGizmosSelected()
-        {
-            Gizmos.DrawWireCube(
-                mapBounds.center,
-                mapBounds.size
-            );
-        }
-
         /// <summary>
         /// Di chuyển Camera đến vị trí được chỉ định.
         /// Giữ nguyên tọa độ Z và giới hạn trong Map.
@@ -197,6 +227,15 @@ namespace TinyTactics.CameraSystem
             );
 
             ClampCameraPosition();
+        }
+
+#if UNITY_EDITOR
+        private void OnDrawGizmosSelected()
+        {
+            Gizmos.DrawWireCube(
+                mapBounds.center,
+                mapBounds.size
+            );
         }
 #endif
     }

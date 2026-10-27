@@ -78,5 +78,16 @@ namespace TinyTactics.Economy
             }
             return false;
         }
+
+        /// <summary>
+        /// Kiểm tra xem người chơi có đủ đồng thời 3 loại tài nguyên hay không.
+        /// Thường dùng trước khi mua quân hoặc công trình.
+        /// </summary>
+        public bool HasEnough(int meat, int wood, int gold)
+        {
+            return GetResourceAmount(ResourceType.Meat) >= meat &&
+                   GetResourceAmount(ResourceType.Wood) >= wood &&
+                   GetResourceAmount(ResourceType.Gold) >= gold;
+        }
     }
 }
