@@ -1,6 +1,7 @@
 ﻿using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using TinyTactics.Audio;
 
 namespace TinyTactics.Buildings
 {
@@ -159,8 +160,12 @@ namespace TinyTactics.Buildings
             // Bỏ chọn trước khi hủy để UI không giữ reference cũ.
             ClearSelection();
 
-            // BuildingInstance.OnDestroy sẽ tự gọi
-            // BuildingOccupancyManager.Release().
+            // Phát SFX tại vị trí công trình được phá.
+            SFXManager.Instance?.PlayAtPosition(
+                SFXType.BuildingDestroy,
+                buildingObject.transform.position
+            );
+
             Destroy(buildingObject);
 
             Debug.Log(

@@ -1,14 +1,22 @@
+
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
 namespace AoEMini.Selection
 {
     /// <summary>
-    /// Manages currently selected units.
+    /// Quản lý các đơn vị đang được chọn.
+    /// Phát sự kiện khi thao tác chọn thành công.
     /// </summary>
     public sealed class SelectionSystem : MonoBehaviour
     {
         public static SelectionSystem Instance { get; private set; }
+
+        /// <summary>
+        /// Phát một lần sau khi thao tác chọn có kết quả.
+        /// </summary>
+        public event Action SelectionCompleted;
 
         private readonly List<SelectableUnit> _selectedUnits = new();
 
@@ -54,6 +62,8 @@ namespace AoEMini.Selection
 
             unit.SetSelected(true);
             _selectedUnits.Add(unit);
+
+            NotifySelectionCompleted();
         }
 
         public void SelectInRectangle(
@@ -66,16 +76,14 @@ namespace AoEMini.Selection
 
             ClearSelection();
 
-            Vector2 min =
-                Vector2.Min(screenStart, screenEnd);
-
-            Vector2 max =
-                Vector2.Max(screenStart, screenEnd);
+            Vector2 min = Vector2.Min(screenStart, screenEnd);
+            Vector2 max = Vector2.Max(screenStart, screenEnd);
 
             SelectableUnit[] units =
                 FindObjectsByType<SelectableUnit>(
                     FindObjectsInactive.Exclude,
-                    FindObjectsSortMode.None);
+                    FindObjectsSortMode.None
+                );
 
             for (int i = 0; i < units.Length; i++)
             {
@@ -85,10 +93,8 @@ namespace AoEMini.Selection
                     continue;
 
                 Vector3 screenPosition =
-                    camera.WorldToScreenPoint(
-                        unit.transform.position);
+                    camera.WorldToScreenPoint(unit.transform.position);
 
-                // Unit is behind the camera.
                 if (screenPosition.z < 0f)
                     continue;
 
@@ -104,10 +110,11 @@ namespace AoEMini.Selection
                 unit.SetSelected(true);
                 _selectedUnits.Add(unit);
             }
+
+            NotifySelectionCompleted();
         }
 
-        public void SelectUnits(
-            IReadOnlyList<SelectableUnit> units)
+        public void SelectUnits(IReadOnlyList<SelectableUnit> units)
         {
             ClearSelection();
 
@@ -124,7 +131,17 @@ namespace AoEMini.Selection
                 unit.SetSelected(true);
                 _selectedUnits.Add(unit);
             }
+
+            NotifySelectionCompleted();
         }
 
+        /// <summary>
+        /// Không thông báo nếu danh sách chọn rỗng.
+        /// </summary>
+        private void NotifySelectionCompleted()
+        {
+            if (_selectedUnits.Count > 0)
+                SelectionCompleted?.Invoke();
+        }
     }
 }

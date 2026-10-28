@@ -483,6 +483,7 @@ GameObject:
   - component: {fileID: 607545708}
   - component: {fileID: 607545710}
   - component: {fileID: 607545709}
+  - component: {fileID: 607545711}
   m_Layer: 0
   m_Name: AudioManager
   m_TagString: Untagged
@@ -625,6 +626,66 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &607545711
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 607545707}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 58f78ccb6c860594a9f9a57d8223a55e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  sfxMixerGroup: {fileID: 2779115162302891272, guid: afa5f6c8db4c3b340b4d2330ddd8951e, type: 2}
+  poolSize: 12
+  maxHearingDistance: 20
+  soundEntries:
+  - type: 0
+    clip: {fileID: 8300000, guid: bee8acc707d46c64788b499df018a357, type: 3}
+    volume: 1
+    cooldown: 0.05
+  - type: 3
+    clip: {fileID: 8300000, guid: 068a586c641c94947bdddd4da3123573, type: 3}
+    volume: 1
+    cooldown: 0.1
+  - type: 4
+    clip: {fileID: 8300000, guid: bcf45aacb468d324ba302051f8d3c40d, type: 3}
+    volume: 1
+    cooldown: 0.3
+  - type: 2
+    clip: {fileID: 8300000, guid: 0db0be85dcd57cb44a80e15fba01ff82, type: 3}
+    volume: 1
+    cooldown: 0.1
+  - type: 6
+    clip: {fileID: 8300000, guid: 1c4b4fb9288acad4ebf28c03b540fd84, type: 3}
+    volume: 1
+    cooldown: 0.15
+  - type: 7
+    clip: {fileID: 8300000, guid: def241d165086cd4294748e67e574ea5, type: 3}
+    volume: 1
+    cooldown: 0.15
+  - type: 8
+    clip: {fileID: 8300000, guid: e79f71912d479034c8f50c927b73792a, type: 3}
+    volume: 1
+    cooldown: 0.25
+  - type: 9
+    clip: {fileID: 8300000, guid: 196963f31bfe98d428e5ed32c23ad9b9, type: 3}
+    volume: 1
+    cooldown: 0.25
+  - type: 10
+    clip: {fileID: 8300000, guid: e90e932f0bc238f4ba7d5594b9bc76a5, type: 3}
+    volume: 1
+    cooldown: 0.25
+  - type: 11
+    clip: {fileID: 8300000, guid: f2bc890979b8f0b43afe71968889833a, type: 3}
+    volume: 1
+    cooldown: 0.15
+  - type: 12
+    clip: {fileID: 8300000, guid: 113aa766cf36d92498849c23365aa8d5, type: 3}
+    volume: 1
+    cooldown: 0.3
 --- !u!1 &687298053
 GameObject:
   m_ObjectHideFlags: 0

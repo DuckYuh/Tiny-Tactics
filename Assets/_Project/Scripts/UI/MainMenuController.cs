@@ -1,11 +1,12 @@
 ﻿
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using TinyTactics.Audio;
 
 namespace TinyTactics.UI
 {
     /// <summary>
-    /// Điều khiển giao diện Main Menu và chuyển sang PvE.
+    /// Điều khiển Main Menu, Settings Panel và SFX.
     /// </summary>
     public class MainMenuController : MonoBehaviour
     {
@@ -24,12 +25,9 @@ namespace TinyTactics.UI
 
         private void Start()
         {
-            ShowMainMenu();
+            ShowPanels(false);
         }
 
-        /// <summary>
-        /// Chuyển sang scene PvE.
-        /// </summary>
         public void PlayPvE()
         {
             if (isLoadingScene)
@@ -37,6 +35,8 @@ namespace TinyTactics.UI
 
             if (!Application.CanStreamedLevelBeLoaded(pveSceneName))
             {
+                PlaySFX(SFXType.UIError);
+
                 Debug.LogError(
                     $"[MainMenu] Scene '{pveSceneName}' " +
                     "chưa được thêm vào Build Profiles."
@@ -44,39 +44,37 @@ namespace TinyTactics.UI
                 return;
             }
 
+            PlaySFX(SFXType.UIConfirm);
             isLoadingScene = true;
+
             SceneManager.LoadScene(pveSceneName);
         }
 
-        /// <summary>
-        /// Hiển thị bảng Settings.
-        /// </summary>
         public void OpenSettings()
         {
-            if (mainMenuPanel != null)
-                mainMenuPanel.SetActive(false);
-
-            if (settingsPanel != null)
-                settingsPanel.SetActive(true);
+            PlaySFX(SFXType.UIClick);
+            ShowPanels(true);
         }
 
-        /// <summary>
-        /// Quay lại Main Menu từ Settings.
-        /// </summary>
         public void ShowMainMenu()
         {
-            if (settingsPanel != null)
-                settingsPanel.SetActive(false);
-
-            if (mainMenuPanel != null)
-                mainMenuPanel.SetActive(true);
+            PlaySFX(SFXType.UICancel);
+            ShowPanels(false);
         }
 
-        /// <summary>
-        /// Thoát ứng dụng.
-        /// </summary>
+        private void ShowPanels(bool showSettings)
+        {
+            if (mainMenuPanel != null)
+                mainMenuPanel.SetActive(!showSettings);
+
+            if (settingsPanel != null)
+                settingsPanel.SetActive(showSettings);
+        }
+
         public void QuitGame()
         {
+            PlaySFX(SFXType.UIClick);
+
             Debug.Log("[MainMenu] Quit Game");
 
 #if UNITY_EDITOR
@@ -84,6 +82,11 @@ namespace TinyTactics.UI
 #else
             Application.Quit();
 #endif
+        }
+
+        private void PlaySFX(SFXType type)
+        {
+            SFXManager.Instance?.Play(type);
         }
     }
 }
