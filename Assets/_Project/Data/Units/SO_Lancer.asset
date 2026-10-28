@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 32a9d2bdd2424e27ba4cc826a9d79647, type: 3}
+  m_Name: SO_Lancer
+  m_EditorClassIdentifier: 
+  unitName: Lancer
+  unitPrefab: {fileID: 3000000000000001, guid: 562fd04ee17341bc8da307e3a7bc302a, type: 3}
+  unitIcon: {fileID: -594197781322936934, guid: 2307ce0d618cb4ea2be2cb2a4148cbde, type: 3}
+  meatCost: 50
+  woodCost: 0
+  goldCost: 20
+  trainTime: 6
+  populationCost: 1

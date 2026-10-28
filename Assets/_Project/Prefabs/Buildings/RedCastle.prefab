@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 5549093170195532131}
   - component: {fileID: 6349710584691238102}
   - component: {fileID: 1108811367119517603}
+  - component: {fileID: 8520194829104859183}
   m_Layer: 11
   m_Name: RedCastle
   m_TagString: Untagged
@@ -159,3 +160,27 @@ MonoBehaviour:
   targetType: 1
   factionId: Red
   markerPosition: {fileID: 0}
+--- !u!114 &8520194829104859183
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5793857773487302034}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0701e86d6dbfa904d8f9835ebdab7607, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  buildingName: Castle
+  factionId: Red
+  maxHP: 2500
+  currentHP: 2500
+  buildingGridSize: {x: 3, y: 3}
+  rallyPoint: {fileID: 0}
+  cameraShakeDuration: 0.5
+  cameraShakeMagnitude: 0.35
+  destructionEffectPrefab: {fileID: 0}
+  castlePopulationProvided: 5
+  dropOffRadius: 3
+  dropOffPoint: {fileID: 0}

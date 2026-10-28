@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using UnityEngine;
 
 namespace TinyTactics.Buildings
@@ -98,6 +98,23 @@ namespace TinyTactics.Buildings
             if (instance.GetComponent<BuildingSelectionVisual>() == null)
             {
                 instance.AddComponent<BuildingSelectionVisual>();
+            }
+
+            // Gắn component logic công trình tương ứng nếu chưa có trên prefab
+            if (instance.GetComponent<BuildingBase>() == null)
+            {
+                if (data.BuildingName == "Castle")
+                {
+                    instance.AddComponent<CastleBuilding>();
+                }
+                else if (data.BuildingName == "House")
+                {
+                    instance.AddComponent<HouseBuilding>();
+                }
+                else if (data.BuildingName == "Barracks")
+                {
+                    instance.AddComponent<BarracksBuilding>();
+                }
             }
 
             buildingInstance = instance;

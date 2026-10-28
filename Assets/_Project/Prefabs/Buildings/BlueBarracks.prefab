@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 7921738852175721134}
   - component: {fileID: -8280863107562978309}
   - component: {fileID: 6386052554143653810}
+  - component: {fileID: 8520194829104859186}
   m_Layer: 11
   m_Name: BlueBarracks
   m_TagString: Untagged
@@ -146,3 +147,31 @@ MonoBehaviour:
   targetType: 1
   factionId: Blue
   markerPosition: {fileID: 0}
+--- !u!114 &8520194829104859186
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3808703310586513681}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 19e7a0054e0c4974b56faef2e8d36f6c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  buildingName: Barracks
+  factionId: Blue
+  maxHP: 1200
+  currentHP: 1200
+  buildingGridSize: {x: 3, y: 3}
+  rallyPoint: {fileID: 0}
+  cameraShakeDuration: 0.3
+  cameraShakeMagnitude: 0.2
+  destructionEffectPrefab: {fileID: 0}
+  trainableUnits:
+  - {fileID: 11400000, guid: f350b6dd6bc44b8abc7c19c7e4f26b91, type: 3}
+  - {fileID: 11400000, guid: 3555a0ad48db4e54a29e2d3906002615, type: 3}
+  - {fileID: 11400000, guid: 92e79544752c43e089106cd395679ff0, type: 3}
+  spawnPoint: {fileID: 0}
+  spawnOffsetDistance: 1.8
+  maxQueueSize: 5
