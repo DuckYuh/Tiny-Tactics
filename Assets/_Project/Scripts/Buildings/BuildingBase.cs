@@ -3,6 +3,7 @@ using System.Collections;
 using UnityEngine;
 using TinyTactics.Pathfinding;
 using TinyTactics.CameraSystem;
+using TinyTactics.Audio;
 
 namespace TinyTactics.Buildings
 {
@@ -175,23 +176,28 @@ namespace TinyTactics.Buildings
         /// </summary>
         protected virtual void OnDestroyed()
         {
-            if (isDestroyed) return;
+            if (isDestroyed)
+                return;
+
             isDestroyed = true;
 
-            Debug.Log($"<color=orange>[BuildingBase] Công trình <b>{buildingName}</b> ({factionId}) đã bị phá hủy!</color>");
+            // Phát âm thanh khi công trình bị phá do hết HP.
+            SFXManager.Instance?.PlayAtPosition(
+                SFXType.BuildingDestroy,
+                transform.position
+            );
+
+            Debug.Log(
+                $"[BuildingBase] Công trình {buildingName} " +
+                $"({factionId}) đã bị phá hủy!"
+            );
 
             OnAnyBuildingDestroyed?.Invoke(this);
 
-            // 1. Mở lại ô lưới di chuyển trên PathfindingGrid
             ReleaseGridOccupancy();
-
-            // 2. Kích hoạt hiệu ứng đổ nát và rung Camera
             TriggerCollapseEffect();
-
-            // 3. Vô hiệu hóa va chạm và ẩn visual
             DisableBuildingInteractions();
 
-            // 4. Hủy GameObject sau một khoảng thời gian ngắn để hiệu ứng hoàn tất
             Destroy(gameObject, 0.1f);
         }
 

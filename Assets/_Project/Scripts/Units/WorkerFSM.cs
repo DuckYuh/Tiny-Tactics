@@ -1,6 +1,7 @@
 using UnityEngine;
 using TinyTactics.Economy;
 using TinyTactics.Buildings;
+using System;
 
 namespace TinyTactics.Units
 {
@@ -40,6 +41,12 @@ namespace TinyTactics.Units
         private ResourceDeposit targetResource;
         private CastleDepositArea targetCastle;
         private float gatherTimer = 0f;
+
+        /// <summary>
+        /// Sự kiện toàn cục được phát khi nông dân
+        /// thực sự thu thập được tài nguyên.
+        /// </summary>
+        public static event Action<ResourceType, Vector3> OnAnyResourceHarvested;
 
         private void Awake()
         {
@@ -184,10 +191,20 @@ namespace TinyTactics.Units
                 
                 if (targetResource.Harvest(amountToRequest, out int harvested))
                 {
-                    heldAmount += harvested;
+                    if (harvested > 0)
+                    {
+                        heldAmount += harvested;
+
+                        // Phát event một lần cho mỗi chu kỳ
+                        // khai thác tài nguyên thành công.
+                        OnAnyResourceHarvested?.Invoke(
+                            heldType,
+                            transform.position
+                        );
+                    }
+
                     if (heldAmount >= backpackCapacity)
                     {
-                        // Đầy túi, về Lâu đài
                         ChangeState(WorkerState.ReturningToCastle);
                     }
                 }

@@ -3,6 +3,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using TinyTactics.Economy;
 using TinyTactics.Input;
+using TinyTactics.Audio;
 
 namespace TinyTactics.Buildings
 {
@@ -234,23 +235,31 @@ namespace TinyTactics.Buildings
                 return;
             }
 
+            // Chỉ phản hồi lỗi khi người chơi thực sự click đặt nhà.
             if (!canPlace)
+            {
+                SFXManager.Instance?.Play(SFXType.UIError);
                 return;
+            }
 
-            TryPlaceBuilding();
+            // Service vẫn có thể từ chối nếu trạng thái Grid
+            // hoặc tài nguyên thay đổi tại thời điểm xác nhận.
+            if (!TryPlaceBuilding())
+            {
+                SFXManager.Instance?.Play(SFXType.UIError);
+            }
         }
 
         /// <summary>
         /// Chỉ truyền yêu cầu xây tới Service.
         /// Không trực tiếp Instantiate hoặc cập nhật Grid.
         /// </summary>
+        
         private bool TryPlaceBuilding()
         {
-            ResourceManager resources =
-                ResourceManager.Instance;
+            ResourceManager resources = ResourceManager.Instance;
 
-            if (resources == null ||
-                selectedBuildingData == null)
+            if (resources == null || selectedBuildingData == null)
             {
                 return false;
             }
@@ -265,6 +274,13 @@ namespace TinyTactics.Buildings
 
             if (success)
             {
+                // Chỉ phát âm thanh sau khi Service
+                // xác nhận công trình được tạo thành công.
+                SFXManager.Instance?.PlayAtPosition(
+                    SFXType.BuildingPlace,
+                    building.transform.position
+                );
+
                 Debug.Log(
                     $"[BuildingPlacement] Blue đã xây " +
                     $"{selectedBuildingData.BuildingName}: " +
@@ -273,6 +289,7 @@ namespace TinyTactics.Buildings
 
             return success;
         }
+
 
         public void CancelPlacement()
         {

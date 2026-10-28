@@ -9,6 +9,7 @@
 [Aa]ssets/AssetStoreTools*
 /ServerData/
 .vs/
+.vscode/
 .idea/
 .gradle/
 *.csproj
