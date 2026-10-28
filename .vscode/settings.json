@@ -51,6 +51,5 @@
         "temp/": true,
         "Temp/": true
     },
-    "dotnet.defaultSolution": "TinyTactics.slnx",
-    "dotnet.preferCSharpExtension": true
+    "dotnet.defaultSolution": "Tiny-Tactics.slnx"
 }

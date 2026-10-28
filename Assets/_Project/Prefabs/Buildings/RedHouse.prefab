@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 3382450971629530436}
   - component: {fileID: 7576561911813705295}
   - component: {fileID: 2558407605405063005}
+  - component: {fileID: 8520194829104859185}
   m_Layer: 11
   m_Name: RedHouse
   m_TagString: Untagged
@@ -146,3 +147,25 @@ MonoBehaviour:
   targetType: 1
   factionId: Red
   markerPosition: {fileID: 0}
+--- !u!114 &8520194829104859185
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9087774806034713164}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 55e5960d7056473db49fc1bc60381b15, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  buildingName: House
+  factionId: Red
+  maxHP: 600
+  currentHP: 600
+  buildingGridSize: {x: 2, y: 2}
+  rallyPoint: {fileID: 0}
+  cameraShakeDuration: 0.2
+  cameraShakeMagnitude: 0.15
+  destructionEffectPrefab: {fileID: 0}
+  populationBonus: 5
