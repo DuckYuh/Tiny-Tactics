@@ -12,6 +12,8 @@ GameObject:
   - component: {fileID: 8467093266778241828}
   - component: {fileID: 9179866672995301305}
   - component: {fileID: 3695040310757664640}
+  - component: {fileID: -1748363854321839515}
+  - component: {fileID: 1757878884498694667}
   m_Layer: 11
   m_Name: RedArchery
   m_TagString: Untagged
@@ -146,3 +148,44 @@ MonoBehaviour:
   targetType: 1
   factionId: Red
   markerPosition: {fileID: 0}
+--- !u!114 &-1748363854321839515
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 833917441977603151}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21cf3d164877bee4a87a1e670e855d68, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  trainableUnits: []
+  spawnPoint: {fileID: 0}
+  spawnOffsetDistance: 1.8
+  maxQueueSize: 5
+--- !u!114 &1757878884498694667
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 833917441977603151}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 19e7a0054e0c4974b56faef2e8d36f6c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  buildingName: Archery
+  factionId: Red
+  maxHP: 500
+  currentHP: 0
+  buildingGridSize: {x: 2, y: 2}
+  rallyPoint: {fileID: 0}
+  cameraShakeDuration: 0.25
+  cameraShakeMagnitude: 0.15
+  destructionEffectPrefab: {fileID: 0}
+  trainableUnits: []
+  spawnPoint: {fileID: 0}
+  spawnOffsetDistance: 1.8
+  maxQueueSize: 5

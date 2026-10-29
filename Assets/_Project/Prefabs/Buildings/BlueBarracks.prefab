@@ -169,9 +169,9 @@ MonoBehaviour:
   cameraShakeMagnitude: 0.2
   destructionEffectPrefab: {fileID: 0}
   trainableUnits:
-  - {fileID: 11400000, guid: f350b6dd6bc44b8abc7c19c7e4f26b91, type: 3}
-  - {fileID: 11400000, guid: 3555a0ad48db4e54a29e2d3906002615, type: 3}
-  - {fileID: 11400000, guid: 92e79544752c43e089106cd395679ff0, type: 3}
+  - {fileID: 11400000, guid: f350b6dd6bc44b8abc7c19c7e4f26b91, type: 2}
+  - {fileID: 11400000, guid: 3555a0ad48db4e54a29e2d3906002615, type: 2}
+  - {fileID: 11400000, guid: 92e79544752c43e089106cd395679ff0, type: 2}
   spawnPoint: {fileID: 0}
   spawnOffsetDistance: 1.8
   maxQueueSize: 5

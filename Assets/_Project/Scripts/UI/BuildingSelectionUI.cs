@@ -1,4 +1,5 @@
-﻿using TMPro;
+﻿
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using TinyTactics.Buildings;
@@ -6,8 +7,9 @@ using TinyTactics.Buildings;
 namespace TinyTactics.UI
 {
     /// <summary>
-    /// Hiển thị thông tin công trình đang được chọn.
-    /// Cập nhật bằng sự kiện, không cần Update().
+    /// Hiển thị thông tin công trình đang chọn.
+    /// Castle Blue có thêm thông tin dân số.
+    /// UI cập nhật thông qua Event, không cần Update().
     /// </summary>
     public sealed class BuildingSelectionUI : MonoBehaviour
     {
@@ -31,9 +33,24 @@ namespace TinyTactics.UI
         [SerializeField]
         private TMP_Text factionText;
 
+        [Header("Castle Population")]
+        [SerializeField]
+        private GameObject castlePopulationPanel;
+
+        [SerializeField]
+        private TMP_Text populationText;
+
+        [SerializeField]
+        private Color normalPopulationColor = Color.white;
+
+        [SerializeField]
+        private Color fullPopulationColor = Color.red;
+
         [Header("Actions")]
         [SerializeField]
         private Button demolishButton;
+
+        private BuildingInstance selectedBuilding;
 
         private void OnEnable()
         {
@@ -49,7 +66,9 @@ namespace TinyTactics.UI
                     OnDemolishClicked);
             }
 
-            // Đồng bộ trạng thái khi UI được bật.
+            PopulationManager.OnPopulationChanged +=
+                HandlePopulationChanged;
+
             HandleSelectionChanged(
                 demolitionController != null
                     ? demolitionController.SelectedBuilding
@@ -69,72 +88,126 @@ namespace TinyTactics.UI
                 demolishButton.onClick.RemoveListener(
                     OnDemolishClicked);
             }
+
+            PopulationManager.OnPopulationChanged -=
+                HandlePopulationChanged;
         }
 
         /// <summary>
-        /// Nhận sự kiện khi công trình được chọn hoặc bỏ chọn.
+        /// Xử lý khi chọn hoặc bỏ chọn công trình.
         /// </summary>
         private void HandleSelectionChanged(
             BuildingInstance building)
         {
-            bool hasBuilding =
-                building != null && building.IsInitialized;
+            selectedBuilding =
+                building != null && building.IsInitialized
+                    ? building
+                    : null;
+
+            bool hasBuilding = selectedBuilding != null;
 
             if (buildingInfoPanel != null)
-            {
                 buildingInfoPanel.SetActive(hasBuilding);
+
+            // Chỉ hiện Population khi chọn Castle Blue.
+            bool isPlayerCastle =
+                hasBuilding &&
+                selectedBuilding.FactionId == PlayerFactionId &&
+                selectedBuilding.GetComponent<CastleBuilding>() != null;
+
+            if (castlePopulationPanel != null)
+            {
+                castlePopulationPanel.SetActive(isPlayerCastle);
             }
 
             if (!hasBuilding)
                 return;
 
-            // Hiển thị tên công trình.
             if (buildingNameText != null)
             {
                 buildingNameText.text =
-                    building.Data != null
-                        ? building.Data.BuildingName
-                        : building.gameObject.name;
+                    selectedBuilding.Data != null
+                        ? selectedBuilding.Data.BuildingName
+                        : selectedBuilding.gameObject.name;
             }
 
-            // Hiển thị phe sở hữu.
             if (factionText != null)
             {
                 factionText.text =
-                    $"Faction: {building.FactionId}";
+                    $"Faction: {selectedBuilding.FactionId}";
 
                 factionText.color =
-                    building.FactionId == PlayerFactionId
+                    selectedBuilding.FactionId == PlayerFactionId
                         ? new Color(0.4f, 0.7f, 1f)
                         : new Color(1f, 0.45f, 0.45f);
             }
 
-            // Lấy Sprite đại diện từ công trình.
-            // Lấy icon đại diện trực tiếp từ BuildingData.
             if (buildingIcon != null)
             {
-                Sprite sprite = building.Data != null
-                    ? building.Data.BuildingIcon
-                    : null;
+                Sprite sprite =
+                    selectedBuilding.Data != null
+                        ? selectedBuilding.Data.BuildingIcon
+                        : null;
 
                 buildingIcon.sprite = sprite;
                 buildingIcon.enabled = sprite != null;
-
-                // Giữ kích thước RectTransform đã thiết lập.
                 buildingIcon.preserveAspect = true;
             }
 
-            // Chỉ cho phép người chơi phá nhà Blue.
             if (demolishButton != null)
             {
                 demolishButton.gameObject.SetActive(
-                    building.FactionId == PlayerFactionId);
+                    selectedBuilding.FactionId == PlayerFactionId);
             }
+
+            // Đồng bộ ngay khi chọn Castle,
+            // không phải chờ event dân số tiếp theo.
+            if (isPlayerCastle)
+                RefreshPopulation();
         }
 
         /// <summary>
-        /// Gọi chức năng phá nhà từ nút UI.
+        /// Nhận thay đổi dân số từ PopulationManager.
         /// </summary>
+        private void HandlePopulationChanged(int current, int max)
+        {
+            if (selectedBuilding == null)
+                return;
+
+            if (selectedBuilding.FactionId != PlayerFactionId)
+                return;
+
+            if (selectedBuilding.GetComponent<CastleBuilding>() == null)
+                return;
+
+            UpdatePopulationText(current, max);
+        }
+
+        private void RefreshPopulation()
+        {
+            PopulationManager manager = PopulationManager.Instance;
+
+            if (manager == null)
+                return;
+
+            UpdatePopulationText(
+                manager.CurrentPopulation,
+                manager.MaxPopulation);
+        }
+
+        private void UpdatePopulationText(int current, int max)
+        {
+            if (populationText == null)
+                return;
+
+            populationText.text = $"Population: {current}/{max}";
+
+            populationText.color =
+                current >= max
+                    ? fullPopulationColor
+                    : normalPopulationColor;
+        }
+
         private void OnDemolishClicked()
         {
             if (demolitionController == null)
