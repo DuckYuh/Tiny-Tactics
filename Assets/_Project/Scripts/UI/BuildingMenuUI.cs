@@ -1,4 +1,5 @@
-﻿using System;
+﻿
+using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -20,17 +21,24 @@ namespace TinyTactics.UI
     }
 
     /// <summary>
-    /// Quản lý CommandHUD / BuildingPanel cho người chơi Blue.
+    /// Điều phối các menu trong CommandHUD:
+    /// Build, danh sách công trình, Train Barracks.
     /// </summary>
     public class BuildingMenuUI : MonoBehaviour
     {
+        private const string PlayerFactionId = "Blue";
+
         [Header("References")]
         [SerializeField]
         private BuildingPlacementController placementController;
 
+        [SerializeField]
+        private BuildingDemolitionController demolitionController;
+
         [Header("Panels")]
         [SerializeField] private GameObject commandPanel;
         [SerializeField] private GameObject buildingPanel;
+        [SerializeField] private GameObject barracksCommandPanel;
 
         [Header("Buttons")]
         [SerializeField] private Button buildButton;
@@ -41,6 +49,7 @@ namespace TinyTactics.UI
         private List<BuildingMenuEntry> buildingEntries = new();
 
         private int lastWoodAmount = int.MinValue;
+        private bool isBuildingMenuOpen;
 
         private void Awake()
         {
@@ -62,10 +71,31 @@ namespace TinyTactics.UI
             }
         }
 
+        private void OnEnable()
+        {
+            if (demolitionController != null)
+            {
+                demolitionController.OnSelectionChanged +=
+                    HandleSelectionChanged;
+            }
+
+            RefreshCommandPanels();
+        }
+
         private void Start()
         {
-            CloseBuildingMenu();
+            isBuildingMenuOpen = false;
+            RefreshCommandPanels();
             RefreshBuildingButtons();
+        }
+
+        private void OnDisable()
+        {
+            if (demolitionController != null)
+            {
+                demolitionController.OnSelectionChanged -=
+                    HandleSelectionChanged;
+            }
         }
 
         private void Update()
@@ -90,24 +120,63 @@ namespace TinyTactics.UI
                 RefreshBuildingButtons();
         }
 
-        public void OpenBuildingMenu()
+        private void HandleSelectionChanged(BuildingInstance building)
         {
-            if (commandPanel != null)
-                commandPanel.SetActive(false);
+            // Khi chuyển lựa chọn công trình, đóng menu xây.
+            isBuildingMenuOpen = false;
+            RefreshCommandPanels();
+        }
+
+        /// <summary>
+        /// Chỉ hàm này được quản lý trạng thái ba panel.
+        /// </summary>
+        private void RefreshCommandPanels()
+        {
+            bool showBarracks = false;
+
+            if (demolitionController != null)
+            {
+                BuildingInstance building =
+                    demolitionController.SelectedBuilding;
+
+                if (building != null &&
+                    building.IsInitialized &&
+                    building.FactionId == PlayerFactionId)
+                {
+                    showBarracks =
+                        building.GetComponent<BarracksBuilding>() != null;
+                }
+            }
+
+            bool showBuildingMenu = isBuildingMenuOpen;
 
             if (buildingPanel != null)
-                buildingPanel.SetActive(true);
+                buildingPanel.SetActive(showBuildingMenu);
 
+            if (barracksCommandPanel != null)
+            {
+                barracksCommandPanel.SetActive(
+                    !showBuildingMenu && showBarracks);
+            }
+
+            if (commandPanel != null)
+            {
+                commandPanel.SetActive(
+                    !showBuildingMenu && !showBarracks);
+            }
+        }
+
+        public void OpenBuildingMenu()
+        {
+            isBuildingMenuOpen = true;
+            RefreshCommandPanels();
             RefreshBuildingButtons();
         }
 
         public void CloseBuildingMenu()
         {
-            if (buildingPanel != null)
-                buildingPanel.SetActive(false);
-
-            if (commandPanel != null)
-                commandPanel.SetActive(true);
+            isBuildingMenuOpen = false;
+            RefreshCommandPanels();
         }
 
         public void ToggleBuildingMenu()
@@ -115,7 +184,7 @@ namespace TinyTactics.UI
             if (buildingPanel == null)
                 return;
 
-            if (buildingPanel.activeSelf)
+            if (isBuildingMenuOpen)
                 CloseBuildingMenu();
             else
                 OpenBuildingMenu();
@@ -135,7 +204,7 @@ namespace TinyTactics.UI
                 data.WoodCost)
                 return;
 
-            if (data.GetPrefab("Blue") == null)
+            if (data.GetPrefab(PlayerFactionId) == null)
                 return;
 
             placementController.StartPlacement(data);
@@ -180,14 +249,13 @@ namespace TinyTactics.UI
                         resources != null &&
                         placementController != null &&
                         wood >= data.WoodCost &&
-                        data.GetPrefab("Blue") != null;
+                        data.GetPrefab(PlayerFactionId) != null;
                 }
-                // Cập nhật icon công trình từ BuildingData.
+
                 if (entry.iconImage != null)
                 {
-                    Sprite sprite = valid
-                        ? data.BuildingIcon
-                        : null;
+                    Sprite sprite =
+                        valid ? data.BuildingIcon : null;
 
                     entry.iconImage.sprite = sprite;
                     entry.iconImage.enabled = sprite != null;
@@ -203,6 +271,15 @@ namespace TinyTactics.UI
 
             if (backButton != null)
                 backButton.onClick.RemoveListener(CloseBuildingMenu);
+
+            foreach (BuildingMenuEntry entry in buildingEntries)
+            {
+                if (entry != null && entry.button != null)
+                {
+                    // Listeners được Unity giải phóng khi UI bị hủy.
+                    // Không dùng RemoveAllListeners để tránh xóa callback khác.
+                }
+            }
         }
     }
 }
