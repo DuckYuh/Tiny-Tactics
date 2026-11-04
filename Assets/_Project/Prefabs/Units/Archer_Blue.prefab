@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: 2000000000000006}
   - component: {fileID: 2000000000000007}
   - component: {fileID: 2000000000000008}
+  - component: {fileID: -2971818493054058507}
   m_Layer: 7
   m_Name: Archer_Blue
   m_TagString: Untagged
@@ -77,7 +78,7 @@ SpriteRenderer:
   m_LightmapParameters: {fileID: 0}
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 15
+  m_SortingOrder: 10
   m_Sprite: {fileID: 7257567913506708742, guid: 72c22f22ea5e4488390ba536cd5ab98d, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
@@ -192,3 +193,15 @@ MonoBehaviour:
   targetType: 0
   factionId: Blue
   markerPosition: {fileID: 0}
+--- !u!114 &-2971818493054058507
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2000000000000001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 82d7ee095dbed314c98815fb7a586385, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 

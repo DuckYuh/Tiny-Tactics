@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using TinyTactics.Pathfinding;
+using TinyTactics.Animation;
 
 namespace TinyTactics.Units
 {
@@ -36,17 +37,32 @@ namespace TinyTactics.Units
         // Service tìm đường A*
         private Pathfinding.Pathfinding pathfindingService;
 
+        // Component điều khiển hiển thị animation.
+        private UnitAnimationController unitAnimation;
+
+        private SpriteRenderer spriteRenderer;
+
         private void Awake()
         {
             // Khởi tạo Pure C# Service Pathfinding
             pathfindingService = new Pathfinding.Pathfinding();
+
+            unitAnimation = GetComponent<UnitAnimationController>();
+            spriteRenderer = GetComponent<SpriteRenderer>();
         }
 
 
 
         private void Update()
         {
+            // Xử lý di chuyển và cập nhật trạng thái isMoving.
             HandleMovement();
+
+            // Đồng bộ animation sau khi xử lý di chuyển.
+            if (unitAnimation != null)
+            {
+                unitAnimation.SetMoving(isMoving);
+            }
         }
 
         /// <summary>
@@ -66,8 +82,8 @@ namespace TinyTactics.Units
             if (rawPath != null && rawPath.Count > 0)
             {
                 // 2. Kiểm tra ô tại tọa độ destination có thực sự đi được hay không
-                PathNode destNode = PathfindingGrid.Instance != null 
-                    ? PathfindingGrid.Instance.GetNodeFromWorldPosition(destination) 
+                PathNode destNode = PathfindingGrid.Instance != null
+                    ? PathfindingGrid.Instance.GetNodeFromWorldPosition(destination)
                     : null;
 
                 // Chỉ gán đè destination nếu ô đó thực sự đi được (isWalkable == true)
@@ -161,12 +177,10 @@ namespace TinyTactics.Units
             // Cập nhật vị trí đơn vị
             transform.position += movementVector * Time.deltaTime;
 
-            // Tự động xoay hướng nhìn (Flip Sprite) theo chiều ngang
+            // Cập nhật hướng nhìn khi di chuyển.
             if (Mathf.Abs(movementVector.x) > 0.01f)
             {
-                Vector3 scale = transform.localScale;
-                scale.x = movementVector.x > 0 ? Mathf.Abs(scale.x) : -Mathf.Abs(scale.x);
-                transform.localScale = scale;
+                spriteRenderer.flipX = movementVector.x < 0;
             }
         }
 
@@ -227,6 +241,12 @@ namespace TinyTactics.Units
             isMoving = false;
             currentPath = null;
             currentWaypointIndex = 0;
+
+            // Dừng animation di chuyển ngay lập tức.
+            if (unitAnimation != null)
+            {
+                unitAnimation.SetMoving(false);
+            }
         }
 
         /// <summary>
