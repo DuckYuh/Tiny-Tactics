@@ -2,6 +2,7 @@ using UnityEngine;
 using TinyTactics.Economy;
 using TinyTactics.Buildings;
 using System;
+using TinyTactics.Animation;
 
 namespace TinyTactics.Units
 {
@@ -25,10 +26,10 @@ namespace TinyTactics.Units
         [Header("Worker Settings")]
         [Tooltip("Sức chứa tài nguyên tối đa trong túi")]
         [SerializeField] private int backpackCapacity = 10;
-        
+
         [Tooltip("Khoảng cách tương tác với tài nguyên và nhà")]
         [SerializeField] private float interactionRange = 1.0f;
-        
+
         [Tooltip("Bán kính tìm kiếm tài nguyên mới nếu tài nguyên cũ cạn kiệt")]
         [SerializeField] private float scanRadius = 15f;
 
@@ -48,9 +49,12 @@ namespace TinyTactics.Units
         /// </summary>
         public static event Action<ResourceType, Vector3> OnAnyResourceHarvested;
 
+        private UnitAnimationController unitAnimation;
+
         private void Awake()
         {
             unitController = GetComponent<UnitController>();
+            unitAnimation = GetComponent<UnitAnimationController>();
         }
 
         private void Update()
@@ -82,50 +86,115 @@ namespace TinyTactics.Units
         }
 
         /// <summary>
+        /// Chuyển ResourceType sang Animator HarvestType.
+        /// </summary>
+        private int GetHarvestAnimationType(ResourceType type)
+        {
+            switch (type)
+            {
+                case ResourceType.Wood:
+                    return 1;
+
+                case ResourceType.Gold:
+                    return 2;
+
+                case ResourceType.Meat:
+                    return 3;
+
+                default:
+                    return 0;
+            }
+        }
+
+        /// <summary>
         /// Gọi hàm này từ RTSUnitManager (hoặc chuột) để gán lệnh lấy tài nguyên.
         /// </summary>
         public void AssignToResource(ResourceDeposit resource)
         {
             if (resource == null) return;
-            
+
             targetResource = resource;
             heldType = targetResource.resourceType; // Ghi nhớ loại tài nguyên cần lấy
             ChangeState(WorkerState.MovingToResource);
         }
 
+
         private void ChangeState(WorkerState newState)
         {
+            // Không xử lý lại nếu trạng thái không thay đổi.
+            if (currentState == newState)
+                return;
+
             currentState = newState;
-            
-            if (currentState == WorkerState.MovingToResource)
+
+            // Ngừng animation khai thác khi rời Harvesting.
+            if (newState != WorkerState.Harvesting &&
+                unitAnimation != null)
             {
-                if (targetResource != null)
-                {
-                    unitController.MoveTo(targetResource.transform.position);
-                }
+                unitAnimation.StopHarvest();
             }
-            else if (currentState == WorkerState.ReturningToCastle)
+
+            switch (currentState)
             {
-                FindNearestCastle();
-                if (targetCastle != null)
-                {
-                    unitController.MoveTo(targetCastle.GetDropOffPosition());
-                }
-                else
-                {
-                    Debug.LogWarning("Không tìm thấy Castle! Nông dân sẽ đứng yên chờ lệnh.");
-                    ChangeState(WorkerState.Idle);
-                }
-            }
-            else if (currentState == WorkerState.Idle)
-            {
-                unitController.Stop();
-            }
-            else if (currentState == WorkerState.Harvesting)
-            {
-                unitController.Stop(); // Dừng lại để bắt đầu cuốc/chặt
+                case WorkerState.MovingToResource:
+                    if (targetResource != null)
+                    {
+                        unitController.MoveTo(
+                            targetResource.transform.position
+                        );
+                    }
+                    break;
+
+                case WorkerState.ReturningToCastle:
+                    FindNearestCastle();
+
+                    if (targetCastle != null)
+                    {
+                        unitController.MoveTo(
+                            targetCastle.GetDropOffPosition()
+                        );
+                    }
+                    else
+                    {
+                        Debug.LogWarning(
+                            "Không tìm thấy Castle! Pawn sẽ đứng yên."
+                        );
+
+                        ChangeState(WorkerState.Idle);
+                    }
+                    break;
+
+                case WorkerState.Idle:
+                    unitController.Stop();
+                    break;
+
+                case WorkerState.Harvesting:
+                    // Ngừng di chuyển trước khi khai thác.
+                    unitController.Stop();
+
+                    if (unitAnimation != null &&
+                        targetResource != null)
+                    {
+                        int animationType =
+                            GetHarvestAnimationType(
+                                targetResource.resourceType
+                            );
+
+                        unitAnimation.SetHarvestType(animationType);
+                    }
+                    break;
+
+                case WorkerState.Depositing:
+                    unitController.Stop();
+                    break;
+
+                case WorkerState.MovingToBuild:
+                case WorkerState.Building:
+                    // Sẽ tích hợp animation xây dựng sau.
+                    break;
             }
         }
+
 
         private void HandleIdleState()
         {
@@ -142,7 +211,7 @@ namespace TinyTactics.Units
             }
 
             float distance = Vector2.Distance(transform.position, targetResource.transform.position);
-            
+
             // Đã tới gần đủ tầm tương tác
             if (distance <= interactionRange)
             {
@@ -185,10 +254,10 @@ namespace TinyTactics.Units
             if (gatherTimer >= targetResource.gatherTimePerCycle)
             {
                 gatherTimer = 0f;
-                
+
                 // Chỉ lấy đủ sức chứa của túi
                 int amountToRequest = Mathf.Min(targetResource.amountPerCycle, backpackCapacity - heldAmount);
-                
+
                 if (targetResource.Harvest(amountToRequest, out int harvested))
                 {
                     if (harvested > 0)
@@ -258,7 +327,7 @@ namespace TinyTactics.Units
             else
             {
                 // Tìm mỏ/cây cùng loại
-                FindAlternativeResource(); 
+                FindAlternativeResource();
             }
         }
 
