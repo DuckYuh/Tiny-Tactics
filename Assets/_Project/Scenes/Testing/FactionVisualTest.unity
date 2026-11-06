@@ -460,6 +460,60 @@ MonoBehaviour:
   redController: {fileID: 22100000, guid: b848e2fab7593574da58b89a5063cde4, type: 2}
   purpleController: {fileID: 0}
   yellowController: {fileID: 0}
+--- !u!1 &1540165977
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1540165979}
+  - component: {fileID: 1540165978}
+  m_Layer: 0
+  m_Name: FactionVisualManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1540165978
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1540165977}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6d6ae800fc378e4393a282fe0eff083, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  unitAnimations:
+  - unitName: Warrior
+    blueController: {fileID: 9100000, guid: aa1112b337436413a9e3f0f07d8475c2, type: 2}
+    redController: {fileID: 22100000, guid: eb75d3edda52f4d42a76fcb4eddd8547, type: 2}
+  - unitName: Archer
+    blueController: {fileID: 9100000, guid: e69e54e6f75584bf382ddbe934f532b6, type: 2}
+    redController: {fileID: 22100000, guid: b848e2fab7593574da58b89a5063cde4, type: 2}
+  - unitName: Lancer
+    blueController: {fileID: 9100000, guid: fa7ae5cd619544ca4a4ea82a50baa12d, type: 2}
+    redController: {fileID: 22100000, guid: 6c058d1bd95f6eb4190e860fb73d8946, type: 2}
+--- !u!4 &1540165979
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1540165977}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -2.003592, y: 0.5051434, z: -0.08700423}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1913887867
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -551,3 +605,4 @@ SceneRoots:
   - {fileID: 144228949}
   - {fileID: 181075786}
   - {fileID: 1442654261}
+  - {fileID: 1540165979}

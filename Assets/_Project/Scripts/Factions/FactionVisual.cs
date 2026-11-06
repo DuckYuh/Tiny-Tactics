@@ -28,7 +28,15 @@ namespace TinyTactics.Factions
         private void Awake()
         {
             animator = GetComponent<Animator>();
-            ApplyFactionVisual();
+
+            // Với prefab đã cấu hình từ Inspector,
+            // áp dụng visual như bình thường.
+            // Với component được AddComponent tại runtime,
+            // chờ Configure() cung cấp controller.
+            if (GetController(factionId) != null)
+            {
+                ApplyFactionVisual();
+            }
         }
 
         /// <summary>
@@ -118,6 +126,40 @@ namespace TinyTactics.Factions
 
             animator.runtimeAnimatorController = controller;
         }
+
+
+        /// <summary>
+        /// Cấu hình Animator theo phe tại runtime.
+        /// Dùng cho Unit vừa được sinh từ Barracks.
+        /// </summary>
+        public bool Configure(
+            RuntimeAnimatorController blue,
+            RuntimeAnimatorController red,
+            string ownerFactionId)
+        {
+            if (blue == null || red == null)
+            {
+                Debug.LogWarning(
+                    "[FactionVisual] Thiếu Animator Controller.",
+                    this);
+                return false;
+            }
+
+            if (ownerFactionId != "Blue" &&
+                ownerFactionId != "Red")
+            {
+                Debug.LogWarning(
+                    $"[FactionVisual] Phe không hỗ trợ: {ownerFactionId}",
+                    this);
+                return false;
+            }
+
+            blueController = blue;
+            redController = red;
+
+            return SetFaction(ownerFactionId);
+        }
+
 
 #if UNITY_EDITOR
         [ContextMenu("Test Faction Blue")]
