@@ -1,4 +1,4 @@
-
+using TinyTactics.UI;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -99,6 +99,21 @@ namespace TinyTactics.Factions
                     factionId))
             {
                 return;
+            }
+
+            // Đồng bộ phe cho Minimap.
+            MinimapTarget minimapTarget =
+                spawnedUnit.GetComponent<MinimapTarget>();
+
+            if (minimapTarget != null)
+            {
+                minimapTarget.SetFaction(factionId);
+            }
+            else
+            {
+                Debug.LogWarning(
+                    "[FactionBinder] Unit không có MinimapTarget.",
+                    spawnedUnit);
             }
 
             Debug.Log(

@@ -50,6 +50,17 @@ namespace TinyTactics.UI
             }
         }
 
+        /// <summary>
+        /// Cập nhật phe của đối tượng để Minimap hiển thị đúng màu.
+        /// </summary>
+        public void SetFaction(string newFactionId)
+        {
+            if (string.IsNullOrWhiteSpace(newFactionId))
+                return;
+
+            factionId = newFactionId;
+        }
+
         private void Awake()
         {
             buildingInstance = GetComponent<BuildingInstance>();
