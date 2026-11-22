@@ -1,3 +1,4 @@
+
 using UnityEngine;
 using TinyTactics.Core;
 using TinyTactics.Units;
@@ -7,180 +8,312 @@ using TinyTactics.UI;
 
 namespace TinyTactics.Buildings
 {
-    /// <summary>
-    /// Công trình Lâu đài (Castle) — Căn cứ đầu não của mỗi phe.
-    /// - Cấp sẵn +5 Sức chứa tối đa (Max Population) cho phe Blue lúc khởi đầu.
-    /// - Là điểm nộp tài nguyên (Drop-off point) cho Nông dân (Pawn / Worker).
-    /// - Là điều kiện THẮNG/THUA: Nếu Lâu đài của Player bị hủy -> Kích hoạt Thua cuộc (GameManager.OnPlayerDefeated).
-    /// </summary>
     [RequireComponent(typeof(CastleDepositArea))]
     public class CastleBuilding : BuildingBase
     {
         [Header("Castle Population")]
-        [Tooltip("Số lượng dân số tối đa mà Lâu đài cấp sẵn khi bắt đầu trận")]
         [SerializeField] private int castlePopulationProvided = 5;
 
         [Header("Resource Drop-Off Settings")]
-        [Tooltip("Bán kính tương tác nộp tài nguyên cho Nông dân")]
-        [SerializeField] private float dropOffRadius = 3.0f;
-
-        [Tooltip("Vị trí điểm nộp tài nguyên cụ thể (nếu để trống sẽ lấy tâm công trình)")]
+        [SerializeField] private float dropOffRadius = 3f;
         [SerializeField] private Transform dropOffPoint;
 
         [Header("Pawn Spawn Settings")]
         [SerializeField] private UnitDataSO pawnData;
-
         [SerializeField] private float spawnSpacing = 0.6f;
 
-        private CastleDepositArea _depositArea;
-        private bool _populationGranted = false;
+        [Tooltip("Bật nếu đây là Castle có sẵn từ đầu trận.")]
+        [SerializeField] private bool spawnStartingPawns = false;
+
+        [Tooltip("Số Pawn được sinh khi bắt đầu trận.")]
+        [SerializeField, Min(0)] private int startingPawnCount = 4;
+
+        [Header("Pawn Faction Animation")]
+        [SerializeField] private RuntimeAnimatorController pawnBlueController;
+        [SerializeField] private RuntimeAnimatorController pawnRedController;
+
+        private CastleDepositArea depositArea;
+        private bool populationGranted;
+        private bool startingPawnsSpawned;
 
         public float DropOffRadius => dropOffRadius;
 
         protected override void Awake()
         {
-            // Thiết lập giá trị mặc định cho Lâu đài nếu chưa tùy chỉnh trong Inspector
             buildingName = "Castle";
-            if (maxHP <= 500) maxHP = 2500;
+
+            if (maxHP <= 500)
+                maxHP = 2500;
+
             buildingGridSize = new Vector2Int(3, 3);
             cameraShakeDuration = 0.5f;
             cameraShakeMagnitude = 0.35f;
 
             base.Awake();
 
-            // Đảm bảo luôn có CastleDepositArea để WorkerFSM tìm kiếm
-            _depositArea = GetComponent<CastleDepositArea>();
-            if (_depositArea == null)
-            {
-                _depositArea = gameObject.AddComponent<CastleDepositArea>();
-            }
+            depositArea = GetComponent<CastleDepositArea>();
+
+            if (depositArea == null)
+                depositArea = gameObject.AddComponent<CastleDepositArea>();
         }
 
         protected override void Start()
         {
             base.Start();
 
-            // Khởi tạo: Cấp sẵn +5 Sức chứa tối đa cho Player Blue
+            // Cấp Population trước khi đăng ký các Pawn khởi đầu.
             GrantCastlePopulation();
+
+            if (spawnStartingPawns)
+                SpawnStartingPawns();
         }
 
-        /// <summary>
-        /// Cộng thêm +5 Max Population cho người chơi.
-        /// </summary>
-        private void GrantCastlePopulation()
-        {
-            if (_populationGranted) return;
+        #region Starting Pawn Spawn
 
-            if (IsPlayerFaction && PopulationManager.Instance != null)
+        /// <summary>
+        /// Sinh Pawn khởi đầu, không tiêu tốn tài nguyên.
+        /// </summary>
+        private void SpawnStartingPawns()
+        {
+            if (startingPawnsSpawned || isDestroyed)
+                return;
+
+            if (pawnData == null || pawnData.UnitPrefab == null)
             {
-                PopulationManager.Instance.AddMaxPopulation(castlePopulationProvided);
-                _populationGranted = true;
-                Debug.Log($"<color=cyan>[CastleBuilding] Lâu đài khởi tạo: Đã cấp +{castlePopulationProvided} Sức chứa tối đa.</color>");
+                Debug.LogError(
+                    $"[CastleBuilding] {FactionId}: Chưa cấu hình Pawn Data hoặc Unit Prefab.",
+                    this
+                );
+                return;
+            }
+
+            startingPawnsSpawned = true;
+
+            Vector3 center = GetRallyPointPosition();
+
+            Vector3[] offsets =
+            {
+                new Vector3(-spawnSpacing, -spawnSpacing, 0f),
+                new Vector3(spawnSpacing, -spawnSpacing, 0f),
+                new Vector3(-spawnSpacing, spawnSpacing, 0f),
+                new Vector3(spawnSpacing, spawnSpacing, 0f)
+            };
+
+            int spawnedCount = 0;
+
+            for (int i = 0; i < startingPawnCount; i++)
+            {
+                Vector3 spawnPosition =
+                    center + offsets[i % offsets.Length];
+
+                GameObject pawn = Instantiate(
+                    pawnData.UnitPrefab,
+                    spawnPosition,
+                    Quaternion.identity
+                );
+
+                if (pawn == null)
+                    continue;
+
+                // Thêm và cấu hình FactionVisual tại runtime.
+                ConfigurePawnFaction(pawn);
+
+                // Chỉ quản lý Population của phe người chơi Blue.
+                if (IsPlayerFaction &&
+                    PopulationManager.Instance != null)
+                {
+                    PopulationManager.Instance.RegisterUnit(
+                        pawnData.PopulationCost
+                    );
+                }
+
+                spawnedCount++;
+            }
+
+            Debug.Log(
+                $"[CastleBuilding] {FactionId} đã sinh " +
+                $"{spawnedCount}/{startingPawnCount} Pawn khởi đầu.",
+                this
+            );
+        }
+
+        #endregion
+
+        #region Pawn Faction Visual
+
+        /// <summary>
+        /// Thêm FactionVisual nếu chưa tồn tại,
+        /// cấu hình Animator Controller và đồng bộ Minimap.
+        /// Không cần thêm FactionVisual vào prefab.
+        /// </summary>
+        private void ConfigurePawnFaction(GameObject pawn)
+        {
+            if (pawn == null)
+                return;
+
+            // Lấy hoặc thêm FactionVisual.
+            FactionVisual factionVisual =
+                pawn.GetComponent<FactionVisual>();
+
+            if (factionVisual == null)
+                factionVisual = pawn.AddComponent<FactionVisual>();
+
+            // Cấu hình Animator Controller theo phe của Castle.
+            bool configured = factionVisual.Configure(
+                pawnBlueController,
+                pawnRedController,
+                FactionId
+            );
+
+            if (!configured)
+            {
+                Debug.LogWarning(
+                    $"[CastleBuilding] Không thể cấu hình FactionVisual " +
+                    $"cho {pawn.name}, phe {FactionId}. " +
+                    "Kiểm tra Animator Controller trong Inspector.",
+                    pawn
+                );
+            }
+
+            // Đồng bộ phe trên Minimap.
+            MinimapTarget minimapTarget =
+                pawn.GetComponent<MinimapTarget>();
+
+            if (minimapTarget != null)
+            {
+                minimapTarget.SetFaction(FactionId);
+            }
+            else
+            {
+                Debug.LogWarning(
+                    $"[CastleBuilding] {pawn.name} chưa có MinimapTarget.",
+                    pawn
+                );
             }
         }
 
-        /// <summary>
-        /// Trả về tọa độ điểm nộp tài nguyên cho Nông dân.
-        /// </summary>
+        #endregion
+
+        #region Population
+
+        private void GrantCastlePopulation()
+        {
+            if (populationGranted)
+                return;
+
+            if (IsPlayerFaction &&
+                PopulationManager.Instance != null)
+            {
+                PopulationManager.Instance.AddMaxPopulation(
+                    castlePopulationProvided
+                );
+
+                populationGranted = true;
+
+                Debug.Log(
+                    $"[CastleBuilding] Đã cấp +" +
+                    $"{castlePopulationProvided} Population.",
+                    this
+                );
+            }
+        }
+
+        private void RevokeCastlePopulation()
+        {
+            if (!populationGranted)
+                return;
+
+            if (IsPlayerFaction &&
+                PopulationManager.Instance != null)
+            {
+                PopulationManager.Instance.RemoveMaxPopulation(
+                    castlePopulationProvided
+                );
+
+                populationGranted = false;
+            }
+        }
+
+        #endregion
+
+        #region Resource Drop-Off
+
         public Vector3 GetDropOffPosition()
         {
             if (dropOffPoint != null)
-            {
                 return dropOffPoint.position;
-            }
 
-            if (_depositArea != null)
-            {
-                return _depositArea.GetDropOffPosition();
-            }
+            if (depositArea != null)
+                return depositArea.GetDropOffPosition();
 
             return transform.position;
         }
 
-        /// <summary>
-        /// Tích hợp nhận diện Nông dân (Pawn) đi vào vùng nộp tài nguyên qua Trigger Collider2D.
-        /// </summary>
         private void OnTriggerEnter2D(Collider2D other)
         {
             WorkerFSM worker = other.GetComponent<WorkerFSM>();
+
             if (worker != null)
-            {
-                // Nông dân tiến vào vùng Castle, hỗ trợ xử lý nếu cần kích hoạt nhận tài nguyên sớm
                 OnWorkerArrivedAtCastle(worker);
-            }
         }
 
-        /// <summary>
-        /// Xử lý khi Nông dân mang tài nguyên về tới Lâu đài.
-        /// </summary>
         public void OnWorkerArrivedAtCastle(WorkerFSM worker)
         {
-            if (worker == null) return;
-            // WorkerFSM đã có logic tự động nộp tài nguyên vào ResourceManager khi đến gần
+            if (worker == null)
+                return;
+
+            // WorkerFSM tự xử lý việc nộp tài nguyên.
         }
 
-        /// <summary>
-        /// Xử lý khi Lâu đài bị tiêu diệt (HP <= 0 hoặc bị phá).
-        /// Kích hoạt Thua cuộc (Defeat) nếu là Lâu đài Player, hoặc Chiến thắng (Victory) nếu là Lâu đài Địch.
-        /// </summary>
+        #endregion
+
+        #region Castle Destruction
+
         protected override void OnDestroyed()
         {
-            if (isDestroyed) return;
+            if (isDestroyed)
+                return;
 
             RevokeCastlePopulation();
 
-            // Điều kiện Thắng / Thua sống còn
             if (IsPlayerFaction)
             {
-                Debug.Log("<color=red><b>[CastleBuilding] LÂU ĐÀI CỦA NGƯỜI CHƠI BỊ TIÊU DIỆT! THUA CUỘC!</b></color>");
+                Debug.Log(
+                    "<color=red><b>[CastleBuilding] " +
+                    "LÂU ĐÀI NGƯỜI CHƠI BỊ TIÊU DIỆT! THUA CUỘC!</b></color>"
+                );
+
                 GameManager.TriggerPlayerDefeated();
             }
             else
             {
-                Debug.Log("<color=green><b>[CastleBuilding] LÂU ĐÀI CỦA ĐỐI PHƯƠNG BỊ TIÊU DIỆT! CHIẾN THẮNG!</b></color>");
+                Debug.Log(
+                    "<color=green><b>[CastleBuilding] " +
+                    "LÂU ĐÀI ĐỐI PHƯƠNG BỊ TIÊU DIỆT! CHIẾN THẮNG!</b></color>"
+                );
+
                 GameManager.TriggerPlayerVictory();
             }
 
             base.OnDestroyed();
         }
 
-        /// <summary>
-        /// Trừ lại sức chứa khi Lâu đài bị phá hủy.
-        /// </summary>
-        private void RevokeCastlePopulation()
-        {
-            if (!_populationGranted) return;
-
-            if (IsPlayerFaction && PopulationManager.Instance != null)
-            {
-                PopulationManager.Instance.RemoveMaxPopulation(castlePopulationProvided);
-                _populationGranted = false;
-            }
-        }
-
         protected override void OnDestroy()
         {
             RevokeCastlePopulation();
 
-            // Nếu Lâu đài Player bị xóa khỏi scene trước khi hết máu (ví dụ do Demolish)
             if (!isDestroyed && IsPlayerFaction)
-            {
                 GameManager.TriggerPlayerDefeated();
-            }
 
             base.OnDestroy();
         }
 
-        private void OnDrawGizmosSelected()
-        {
-            // Vẽ bán kính điểm nộp tài nguyên trong Editor
-            Gizmos.color = Color.cyan;
-            Vector3 center = dropOffPoint != null ? dropOffPoint.position : transform.position;
-            Gizmos.DrawWireSphere(center, dropOffRadius);
-        }
+        #endregion
+
+        #region Pawn Manual Spawn
 
         /// <summary>
-        /// Kiểm tra điều kiện sinh Pawn cho Player Blue.
+        /// Kiểm tra điều kiện sinh Pawn từ Castle.
         /// </summary>
         public bool CanSpawnPawn()
         {
@@ -198,29 +331,31 @@ namespace TinyTactics.Buildings
         }
 
         /// <summary>
-        /// Sinh ngay một Pawn từ Castle của Player.
+        /// Sinh một Pawn từ Castle của người chơi.
         /// </summary>
         public bool TrySpawnPawn()
         {
             if (!CanSpawnPawn())
             {
-                Debug.LogWarning("[Castle] Không đủ điều kiện Spawn Pawn.");
+                Debug.LogWarning(
+                    "[CastleBuilding] Không đủ điều kiện Spawn Pawn.",
+                    this
+                );
+
                 return false;
             }
 
             ResourceManager resources = ResourceManager.Instance;
             PopulationManager population = PopulationManager.Instance;
 
-            // Tính vị trí sinh quân lệch nhẹ để tránh chồng lên nhau.
             Vector3 spawnPosition = GetRallyPointPosition();
 
             spawnPosition += new Vector3(
-                UnityEngine.Random.Range(-spawnSpacing, spawnSpacing),
-                UnityEngine.Random.Range(-spawnSpacing, spawnSpacing),
+                Random.Range(-spawnSpacing, spawnSpacing),
+                Random.Range(-spawnSpacing, spawnSpacing),
                 0f
             );
 
-            // Sinh quân trước khi trừ tài nguyên.
             GameObject pawn = Instantiate(
                 pawnData.UnitPrefab,
                 spawnPosition,
@@ -230,16 +365,8 @@ namespace TinyTactics.Buildings
             if (pawn == null)
                 return false;
 
-            // Đảm bảo Pawn thuộc phe Blue.
-            FactionVisual factionVisual = pawn.GetComponent<FactionVisual>();
-
-            if (factionVisual != null)
-                factionVisual.SetFaction(FactionId);
-
-            MinimapTarget minimapTarget = pawn.GetComponent<MinimapTarget>();
-
-            if (minimapTarget != null)
-                minimapTarget.SetFaction(FactionId);
+            // Dùng chung logic cấu hình visual với Pawn khởi đầu.
+            ConfigurePawnFaction(pawn);
 
             // Trừ tài nguyên.
             bool paid = resources.ConsumeResource(
@@ -254,21 +381,45 @@ namespace TinyTactics.Buildings
             }
 
             if (pawnData.WoodCost > 0)
-                resources.ConsumeResource(ResourceType.Wood, pawnData.WoodCost);
+            {
+                resources.ConsumeResource(
+                    ResourceType.Wood,
+                    pawnData.WoodCost
+                );
+            }
 
             if (pawnData.GoldCost > 0)
-                resources.ConsumeResource(ResourceType.Gold, pawnData.GoldCost);
+            {
+                resources.ConsumeResource(
+                    ResourceType.Gold,
+                    pawnData.GoldCost
+                );
+            }
 
-            // Đăng ký dân số.
+            // Đăng ký Population.
             population.RegisterUnit(pawnData.PopulationCost);
 
             Debug.Log(
-                $"[Castle] Spawn Pawn thành công. " +
+                $"[CastleBuilding] Spawn Pawn thành công. " +
                 $"Population: {population.CurrentPopulation}/" +
-                $"{population.MaxPopulation}"
+                $"{population.MaxPopulation}",
+                this
             );
 
             return true;
+        }
+
+        #endregion
+
+        private void OnDrawGizmosSelected()
+        {
+            Gizmos.color = Color.cyan;
+
+            Vector3 center = dropOffPoint != null
+                ? dropOffPoint.position
+                : transform.position;
+
+            Gizmos.DrawWireSphere(center, dropOffRadius);
         }
     }
 }
