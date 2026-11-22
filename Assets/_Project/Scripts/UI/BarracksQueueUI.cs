@@ -41,6 +41,8 @@ namespace TinyTactics.UI
 
         [Header("Training Progress")]
         [SerializeField]
+        private Image progressBar;
+        [SerializeField]
         private Image progressFill;
 
         [SerializeField]
@@ -178,6 +180,7 @@ namespace TinyTactics.UI
             IReadOnlyList<UnitDataSO> queue)
         {
             int count = queue != null ? queue.Count : 0;
+            SetProgressVisible(count > 0);
 
             if (queueCountText != null)
             {
@@ -214,6 +217,21 @@ namespace TinyTactics.UI
                     slot.unitIcon.preserveAspect = true;
                 }
             }
+        }
+
+        private void SetProgressVisible(bool visible)
+        {
+            if (progressBar != null)
+                progressBar.gameObject.SetActive(visible);
+
+            if (progressFill != null)
+                progressFill.gameObject.SetActive(visible);
+
+            if (progressText != null)
+                progressText.gameObject.SetActive(visible);
+
+            if (trainingNameText != null)
+                trainingNameText.gameObject.SetActive(visible);
         }
 
         private void HandleTrainingProgress(

@@ -1,5 +1,7 @@
 
 using UnityEngine;
+using System;
+using System.Collections.Generic;
 using TinyTactics.Core;
 using TinyTactics.Units;
 using TinyTactics.Economy;
@@ -21,6 +23,8 @@ namespace TinyTactics.Buildings
         [Header("Pawn Spawn Settings")]
         [SerializeField] private UnitDataSO pawnData;
         [SerializeField] private float spawnSpacing = 0.6f;
+        [SerializeField, Min(0.1f)] private float pawnSpawnDelay = 5f;
+        [SerializeField, Min(1)] private int maxQueueSize = 5;
 
         [Tooltip("Bật nếu đây là Castle có sẵn từ đầu trận.")]
         [SerializeField] private bool spawnStartingPawns = false;
@@ -35,6 +39,26 @@ namespace TinyTactics.Buildings
         private CastleDepositArea depositArea;
         private bool populationGranted;
         private bool startingPawnsSpawned;
+        private bool isSpawningPawn;
+        private float pawnSpawnTimer;
+        private readonly List<UnitDataSO> pawnQueue =
+            new List<UnitDataSO>();
+
+        public event Action<float> OnPawnSpawnProgressChanged;
+        public event Action<IReadOnlyList<UnitDataSO>> OnPawnQueueUpdated;
+        public IReadOnlyList<UnitDataSO> PawnQueue => pawnQueue;
+        public int CurrentPawnQueueCount => pawnQueue.Count;
+        public int MaxPawnQueueSize => maxQueueSize;
+        public UnitDataSO CurrentPawnQueueUnit =>
+            pawnQueue.Count > 0 ? pawnQueue[0] : null;
+        public bool IsSpawningPawn => isSpawningPawn;
+        public float PawnSpawnDelay => pawnSpawnDelay;
+        public float PawnSpawnProgress =>
+            !isSpawningPawn || pawnSpawnDelay <= 0f
+                ? 0f
+                : Mathf.Clamp01(1f - (pawnSpawnTimer / pawnSpawnDelay));
+        public float PawnSpawnRemainingTime =>
+            isSpawningPawn ? Mathf.Max(0f, pawnSpawnTimer) : 0f;
 
         public float DropOffRadius => dropOffRadius;
 
@@ -66,6 +90,18 @@ namespace TinyTactics.Buildings
 
             if (spawnStartingPawns)
                 SpawnStartingPawns();
+        }
+
+        private void Update()
+        {
+            if (!isSpawningPawn || isDestroyed)
+                return;
+
+            pawnSpawnTimer -= Time.deltaTime;
+            OnPawnSpawnProgressChanged?.Invoke(PawnSpawnProgress);
+
+            if (pawnSpawnTimer <= 0f)
+                CompletePawnSpawn();
         }
 
         #region Starting Pawn Spawn
@@ -274,6 +310,9 @@ namespace TinyTactics.Buildings
             if (isDestroyed)
                 return;
 
+            if (isSpawningPawn)
+                RefundPendingPawn();
+
             RevokeCastlePopulation();
 
             if (IsPlayerFaction)
@@ -300,6 +339,9 @@ namespace TinyTactics.Buildings
 
         protected override void OnDestroy()
         {
+            if (isSpawningPawn)
+                RefundPendingPawn();
+
             RevokeCastlePopulation();
 
             if (!isDestroyed && IsPlayerFaction)
@@ -335,6 +377,24 @@ namespace TinyTactics.Buildings
         /// </summary>
         public bool TrySpawnPawn()
         {
+            if (isDestroyed)
+            {
+                Debug.LogWarning(
+                    "[CastleBuilding] Không thể thêm Pawn: Castle đã bị phá hủy.",
+                    this
+                );
+                return false;
+            }
+
+            if (pawnQueue.Count >= maxQueueSize)
+            {
+                Debug.LogWarning(
+                    $"[CastleBuilding] Hàng đợi Pawn đã đầy ({maxQueueSize}/{maxQueueSize}).",
+                    this
+                );
+                return false;
+            }
+
             if (!CanSpawnPawn())
             {
                 Debug.LogWarning(
@@ -348,11 +408,52 @@ namespace TinyTactics.Buildings
             ResourceManager resources = ResourceManager.Instance;
             PopulationManager population = PopulationManager.Instance;
 
+            bool paid = resources.ConsumeResource(
+                ResourceType.Meat,
+                pawnData.MeatCost
+            );
+
+            if (!paid)
+                return false;
+
+            if (pawnData.WoodCost > 0)
+                resources.ConsumeResource(ResourceType.Wood, pawnData.WoodCost);
+
+            if (pawnData.GoldCost > 0)
+                resources.ConsumeResource(ResourceType.Gold, pawnData.GoldCost);
+
+            population.RegisterUnit(pawnData.PopulationCost);
+
+            pawnQueue.Add(pawnData);
+
+            if (pawnQueue.Count == 1)
+            {
+                isSpawningPawn = true;
+                pawnSpawnTimer = pawnSpawnDelay;
+                OnPawnSpawnProgressChanged?.Invoke(0f);
+            }
+
+            OnPawnQueueUpdated?.Invoke(pawnQueue);
+
+            Debug.Log(
+                $"[CastleBuilding] Đã thêm Pawn vào hàng đợi. " +
+                $"Vị trí: {pawnQueue.Count}/{maxQueueSize}.",
+                this
+            );
+
+            return true;
+        }
+
+        private void CompletePawnSpawn()
+        {
+            isSpawningPawn = false;
+            pawnSpawnTimer = 0f;
+
             Vector3 spawnPosition = GetRallyPointPosition();
 
             spawnPosition += new Vector3(
-                Random.Range(-spawnSpacing, spawnSpacing),
-                Random.Range(-spawnSpacing, spawnSpacing),
+                UnityEngine.Random.Range(-spawnSpacing, spawnSpacing),
+                UnityEngine.Random.Range(-spawnSpacing, spawnSpacing),
                 0f
             );
 
@@ -362,51 +463,96 @@ namespace TinyTactics.Buildings
                 Quaternion.identity
             );
 
-            if (pawn == null)
-                return false;
-
-            // Dùng chung logic cấu hình visual với Pawn khởi đầu.
-            ConfigurePawnFaction(pawn);
-
-            // Trừ tài nguyên.
-            bool paid = resources.ConsumeResource(
-                ResourceType.Meat,
-                pawnData.MeatCost
-            );
-
-            if (!paid)
+            if (pawn != null)
             {
-                Destroy(pawn);
-                return false;
+                ConfigurePawnFaction(pawn);
+
+                PopulationManager population = PopulationManager.Instance;
+                if (population != null)
+                {
+                    Debug.Log(
+                        $"[CastleBuilding] Spawn Pawn thành công. " +
+                        $"Population: {population.CurrentPopulation}/" +
+                        $"{population.MaxPopulation}",
+                        this
+                    );
+                }
+
+                if (pawnQueue.Count > 0)
+                    pawnQueue.RemoveAt(0);
+
+                OnPawnQueueUpdated?.Invoke(pawnQueue);
+            }
+            else
+            {
+                RefundPawnAtIndex(0);
             }
 
-            if (pawnData.WoodCost > 0)
+            if (pawnQueue.Count > 0)
             {
-                resources.ConsumeResource(
-                    ResourceType.Wood,
-                    pawnData.WoodCost
-                );
+                isSpawningPawn = true;
+                pawnSpawnTimer = pawnSpawnDelay;
             }
 
-            if (pawnData.GoldCost > 0)
+            OnPawnSpawnProgressChanged?.Invoke(0f);
+        }
+
+        public void CancelPawnQueue(int index)
+        {
+            RefundPawnAtIndex(index);
+        }
+
+        private void RefundPawnAtIndex(int index)
+        {
+            if (index < 0 || index >= pawnQueue.Count)
+                return;
+
+            UnitDataSO cancelledUnit = pawnQueue[index];
+            pawnQueue.RemoveAt(index);
+
+            if (cancelledUnit != null)
             {
-                resources.ConsumeResource(
-                    ResourceType.Gold,
-                    pawnData.GoldCost
-                );
+                ResourceManager resources = ResourceManager.Instance;
+                PopulationManager population = PopulationManager.Instance;
+
+                if (resources != null)
+                {
+                    resources.AddResource(ResourceType.Meat, cancelledUnit.MeatCost);
+                    resources.AddResource(ResourceType.Wood, cancelledUnit.WoodCost);
+                    resources.AddResource(ResourceType.Gold, cancelledUnit.GoldCost);
+                }
+
+                population?.UnregisterUnit(cancelledUnit.PopulationCost);
             }
 
-            // Đăng ký Population.
-            population.RegisterUnit(pawnData.PopulationCost);
+            if (index == 0)
+            {
+                if (pawnQueue.Count > 0)
+                {
+                    isSpawningPawn = true;
+                    pawnSpawnTimer = pawnSpawnDelay;
+                    OnPawnSpawnProgressChanged?.Invoke(0f);
+                }
+                else
+                {
+                    isSpawningPawn = false;
+                    pawnSpawnTimer = 0f;
+                    OnPawnSpawnProgressChanged?.Invoke(0f);
+                }
+            }
 
-            Debug.Log(
-                $"[CastleBuilding] Spawn Pawn thành công. " +
-                $"Population: {population.CurrentPopulation}/" +
-                $"{population.MaxPopulation}",
-                this
-            );
+            OnPawnQueueUpdated?.Invoke(pawnQueue);
+        }
 
-            return true;
+        private void ClearAndRefundPawnQueue()
+        {
+            while (pawnQueue.Count > 0)
+                RefundPawnAtIndex(0);
+        }
+
+        private void RefundPendingPawn()
+        {
+            ClearAndRefundPawnQueue();
         }
 
         #endregion
