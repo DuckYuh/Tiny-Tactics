@@ -184,3 +184,5 @@ MonoBehaviour:
   castlePopulationProvided: 5
   dropOffRadius: 3
   dropOffPoint: {fileID: 0}
+  pawnData: {fileID: 11400000, guid: da0076931c7782f4285c1e4eaaeefa45, type: 2}
+  spawnSpacing: 0.6

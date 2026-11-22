@@ -2,6 +2,8 @@ using UnityEngine;
 using TinyTactics.Core;
 using TinyTactics.Units;
 using TinyTactics.Economy;
+using TinyTactics.Factions;
+using TinyTactics.UI;
 
 namespace TinyTactics.Buildings
 {
@@ -24,6 +26,11 @@ namespace TinyTactics.Buildings
 
         [Tooltip("Vị trí điểm nộp tài nguyên cụ thể (nếu để trống sẽ lấy tâm công trình)")]
         [SerializeField] private Transform dropOffPoint;
+
+        [Header("Pawn Spawn Settings")]
+        [SerializeField] private UnitDataSO pawnData;
+
+        [SerializeField] private float spawnSpacing = 0.6f;
 
         private CastleDepositArea _depositArea;
         private bool _populationGranted = false;
@@ -170,6 +177,98 @@ namespace TinyTactics.Buildings
             Gizmos.color = Color.cyan;
             Vector3 center = dropOffPoint != null ? dropOffPoint.position : transform.position;
             Gizmos.DrawWireSphere(center, dropOffRadius);
+        }
+
+        /// <summary>
+        /// Kiểm tra điều kiện sinh Pawn cho Player Blue.
+        /// </summary>
+        public bool CanSpawnPawn()
+        {
+            if (isDestroyed || !IsPlayerFaction || pawnData == null)
+                return false;
+
+            ResourceManager resources = ResourceManager.Instance;
+            PopulationManager population = PopulationManager.Instance;
+
+            if (resources == null || population == null)
+                return false;
+
+            return pawnData.CanAfford(resources) &&
+                   population.CanSpawnUnit(pawnData.PopulationCost);
+        }
+
+        /// <summary>
+        /// Sinh ngay một Pawn từ Castle của Player.
+        /// </summary>
+        public bool TrySpawnPawn()
+        {
+            if (!CanSpawnPawn())
+            {
+                Debug.LogWarning("[Castle] Không đủ điều kiện Spawn Pawn.");
+                return false;
+            }
+
+            ResourceManager resources = ResourceManager.Instance;
+            PopulationManager population = PopulationManager.Instance;
+
+            // Tính vị trí sinh quân lệch nhẹ để tránh chồng lên nhau.
+            Vector3 spawnPosition = GetRallyPointPosition();
+
+            spawnPosition += new Vector3(
+                UnityEngine.Random.Range(-spawnSpacing, spawnSpacing),
+                UnityEngine.Random.Range(-spawnSpacing, spawnSpacing),
+                0f
+            );
+
+            // Sinh quân trước khi trừ tài nguyên.
+            GameObject pawn = Instantiate(
+                pawnData.UnitPrefab,
+                spawnPosition,
+                Quaternion.identity
+            );
+
+            if (pawn == null)
+                return false;
+
+            // Đảm bảo Pawn thuộc phe Blue.
+            FactionVisual factionVisual = pawn.GetComponent<FactionVisual>();
+
+            if (factionVisual != null)
+                factionVisual.SetFaction(FactionId);
+
+            MinimapTarget minimapTarget = pawn.GetComponent<MinimapTarget>();
+
+            if (minimapTarget != null)
+                minimapTarget.SetFaction(FactionId);
+
+            // Trừ tài nguyên.
+            bool paid = resources.ConsumeResource(
+                ResourceType.Meat,
+                pawnData.MeatCost
+            );
+
+            if (!paid)
+            {
+                Destroy(pawn);
+                return false;
+            }
+
+            if (pawnData.WoodCost > 0)
+                resources.ConsumeResource(ResourceType.Wood, pawnData.WoodCost);
+
+            if (pawnData.GoldCost > 0)
+                resources.ConsumeResource(ResourceType.Gold, pawnData.GoldCost);
+
+            // Đăng ký dân số.
+            population.RegisterUnit(pawnData.PopulationCost);
+
+            Debug.Log(
+                $"[Castle] Spawn Pawn thành công. " +
+                $"Population: {population.CurrentPopulation}/" +
+                $"{population.MaxPopulation}"
+            );
+
+            return true;
         }
     }
 }

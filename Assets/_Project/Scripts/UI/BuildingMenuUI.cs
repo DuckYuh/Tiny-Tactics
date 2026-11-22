@@ -40,6 +40,8 @@ namespace TinyTactics.UI
         [SerializeField] private GameObject buildingPanel;
         [SerializeField] private GameObject barracksCommandPanel;
 
+        [SerializeField] private GameObject pawnSpawnerPanel;
+
         [Header("Buttons")]
         [SerializeField] private Button buildButton;
         [SerializeField] private Button backButton;
@@ -128,11 +130,13 @@ namespace TinyTactics.UI
         }
 
         /// <summary>
-        /// Chỉ hàm này được quản lý trạng thái ba panel.
+        /// Quản lý trạng thái hiển thị của toàn bộ CommandHUD.
+        /// Đảm bảo chỉ có một panel được hiển thị tại một thời điểm.
         /// </summary>
         private void RefreshCommandPanels()
         {
             bool showBarracks = false;
+            bool showCastle = false;
 
             if (demolitionController != null)
             {
@@ -145,25 +149,40 @@ namespace TinyTactics.UI
                 {
                     showBarracks =
                         building.GetComponent<BarracksBuilding>() != null;
+
+                    showCastle =
+                        !showBarracks &&
+                        building.GetComponent<CastleBuilding>() != null;
                 }
             }
 
+            // Menu xây dựng luôn có độ ưu tiên cao nhất.
             bool showBuildingMenu = isBuildingMenuOpen;
+
+            bool showBarracksPanel =
+                !showBuildingMenu && showBarracks;
+
+            bool showCastlePanel =
+                !showBuildingMenu &&
+                !showBarracks &&
+                showCastle;
+
+            bool showDefaultPanel =
+                !showBuildingMenu &&
+                !showBarracks &&
+                !showCastle;
 
             if (buildingPanel != null)
                 buildingPanel.SetActive(showBuildingMenu);
 
             if (barracksCommandPanel != null)
-            {
-                barracksCommandPanel.SetActive(
-                    !showBuildingMenu && showBarracks);
-            }
+                barracksCommandPanel.SetActive(showBarracksPanel);
+
+            if (pawnSpawnerPanel != null)
+                pawnSpawnerPanel.SetActive(showCastlePanel);
 
             if (commandPanel != null)
-            {
-                commandPanel.SetActive(
-                    !showBuildingMenu && !showBarracks);
-            }
+                commandPanel.SetActive(showDefaultPanel);
         }
 
         public void OpenBuildingMenu()
