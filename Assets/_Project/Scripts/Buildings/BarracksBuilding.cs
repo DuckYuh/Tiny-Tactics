@@ -15,7 +15,7 @@ namespace TinyTactics.Buildings
     {
         [Header("Trainable Units Configuration")]
         [Tooltip("Danh sách các loại quân có thể huấn luyện tại Nhà lính này (Binh sĩ, Cung thủ, Lính giáo)")]
-        [SerializeField] private List<UnitDataSO> trainableUnits = new List<UnitDataSO>();
+        [SerializeField] protected List<UnitDataSO> trainableUnits = new List<UnitDataSO>();
 
         [Header("Spawn & Rally Settings")]
         [Tooltip("Vị trí khởi tạo quân lính mới (nếu để trống sẽ tự tính cạnh nhà lính)")]
@@ -71,13 +71,52 @@ namespace TinyTactics.Buildings
 
         protected override void Awake()
         {
+            ConfigureBuildingDefaults();
+            base.Awake();
+        }
+
+        /// <summary>
+        /// Thiết lập thông số mặc định cho công trình huấn luyện (subclass có thể override).
+        /// </summary>
+        protected virtual void ConfigureBuildingDefaults()
+        {
             buildingName = "Barracks";
             if (maxHP <= 500) maxHP = 1200;
             buildingGridSize = new Vector2Int(3, 3);
             cameraShakeDuration = 0.3f;
             cameraShakeMagnitude = 0.2f;
+        }
 
-            base.Awake();
+        /// <summary>
+        /// Lọc danh sách quân huấn luyện theo đúng tên đơn vị quy định (dùng cho Archery / Monastery).
+        /// </summary>
+        protected void EnforceSingleUnitType(string requiredUnitName, UnitDataSO fallbackUnit)
+        {
+            if (trainableUnits == null)
+            {
+                trainableUnits = new List<UnitDataSO>();
+            }
+
+            for (int i = trainableUnits.Count - 1; i >= 0; i--)
+            {
+                UnitDataSO unit = trainableUnits[i];
+                if (unit == null)
+                    continue;
+
+                if (!string.Equals(unit.UnitName, requiredUnitName, StringComparison.OrdinalIgnoreCase))
+                {
+                    Debug.LogWarning(
+                        $"[{GetType().Name}] Loại bỏ '{unit.UnitName}' vì công trình này chỉ huấn luyện '{requiredUnitName}'.",
+                        this);
+                    trainableUnits.RemoveAt(i);
+                }
+            }
+
+            if (trainableUnits.Count == 0 && fallbackUnit != null &&
+                string.Equals(fallbackUnit.UnitName, requiredUnitName, StringComparison.OrdinalIgnoreCase))
+            {
+                trainableUnits.Add(fallbackUnit);
+            }
         }
 
         private void Update()

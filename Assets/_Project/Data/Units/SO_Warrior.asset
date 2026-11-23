@@ -20,3 +20,10 @@ MonoBehaviour:
   goldCost: 0
   trainTime: 5
   populationCost: 1
+  _maxHP: 150
+  _damage: 15
+  _attackRange: 1.2
+  _attackCooldown: 1.2
+  _moveSpeed: 2.8
+  _armor: 5
+  _visionRange: 7

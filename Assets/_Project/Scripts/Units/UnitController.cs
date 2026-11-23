@@ -42,6 +42,34 @@ namespace TinyTactics.Units
 
         private SpriteRenderer spriteRenderer;
 
+        public bool IsMoving => isMoving;
+
+        /// <summary>
+        /// Cập nhật tốc độ di chuyển từ UnitDataSO.
+        /// </summary>
+        public void SetMoveSpeed(float speed)
+        {
+            if (speed > 0f)
+            {
+                moveSpeed = speed;
+            }
+        }
+
+        /// <summary>
+        /// Xoay hướng Sprite về phía mục tiêu khi đứng yên giao tranh.
+        /// </summary>
+        public void FacePosition(Vector3 targetPosition)
+        {
+            if (spriteRenderer == null)
+                return;
+
+            float deltaX = targetPosition.x - transform.position.x;
+            if (Mathf.Abs(deltaX) > 0.01f)
+            {
+                spriteRenderer.flipX = deltaX < 0f;
+            }
+        }
+
         private void Awake()
         {
             // Khởi tạo Pure C# Service Pathfinding
@@ -247,6 +275,14 @@ namespace TinyTactics.Units
             {
                 unitAnimation.SetMoving(false);
             }
+        }
+
+        /// <summary>
+        /// Alias chuẩn hóa để UnitCombatController dừng quân khi vào tầm đánh.
+        /// </summary>
+        public void StopMovement()
+        {
+            Stop();
         }
 
         /// <summary>

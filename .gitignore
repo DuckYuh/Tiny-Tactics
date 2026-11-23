@@ -8,6 +8,7 @@
 [Mm]emoryCaptures/
 [Aa]ssets/AssetStoreTools*
 /ServerData/
+.archify/
 .vs/
 .vscode/
 .idea/

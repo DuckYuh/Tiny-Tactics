@@ -1,7 +1,9 @@
+using System;
 using AoEMini.Army;
 using AoEMini.Selection;
 using System.Collections.Generic;
 using TinyTactics.Buildings;
+using TinyTactics.Combat;
 using TinyTactics.Input;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -37,6 +39,13 @@ namespace AoEMini.Input
         [Header("Building Selection")]
         [SerializeField]
         private BuildingDemolitionController _buildingDemolition;
+
+        [Header("Combat & Attack-Move")]
+        [SerializeField] private Faction _playerFaction = Faction.Blue;
+        [SerializeField] private Texture2D _attackMoveCursor;
+        [SerializeField] private Vector2 _attackMoveCursorHotspot = Vector2.zero;
+
+        public static event Action<bool> OnAttackMoveModeChanged;
 
         private GameInputActions _input;
 
@@ -85,6 +94,10 @@ namespace AoEMini.Input
 
             // Cancel
             _input.Player.Cancel.performed += OnCancel;
+
+            // Combat
+            _input.Player.AttackMove.performed += OnAttackMove;
+            RTSInputMode.OnInputModeChanged += HandleInputModeChanged;
         }
 
         private void OnDisable()
@@ -107,6 +120,17 @@ namespace AoEMini.Input
 
             // Cancel
             _input.Player.Cancel.performed -= OnCancel;
+
+            // Combat
+            _input.Player.AttackMove.performed -= OnAttackMove;
+            RTSInputMode.OnInputModeChanged -= HandleInputModeChanged;
+
+            if (RTSInputMode.IsAttackMoveActive)
+            {
+                RTSInputMode.ExitAttackMove();
+            }
+
+            ApplyAttackMoveCursor(false);
 
             _input.Disable();
         }
@@ -209,6 +233,15 @@ namespace AoEMini.Input
             if (IsPointerOverUI(screenPosition))
                 return;
 
+            if (RTSInputMode.IsAttackMoveActive)
+            {
+                ExecuteAttackMoveAtScreenPosition(screenPosition);
+                _isSelecting = false;
+                _isDragging = false;
+                HideSelectionBox();
+                return;
+            }
+
             _selectionStart = screenPosition;
             _isSelecting = true;
             _isDragging = false;
@@ -256,6 +289,12 @@ namespace AoEMini.Input
             if (RTSInputMode.IsWorldInputBlocked)
                 return;
 
+            if (RTSInputMode.IsAttackMoveActive)
+            {
+                RTSInputMode.ExitAttackMove();
+                return;
+            }
+
             if (RTSUnitManager.Instance == null)
             {
                 Debug.LogWarning(
@@ -271,27 +310,21 @@ namespace AoEMini.Input
             if (IsPointerOverUI(screenPosition))
                 return;
 
-            float distanceFromCamera =
-                Mathf.Abs(_mainCamera.transform.position.z);
+            Vector3 worldPosition = ScreenToWorld2D(screenPosition);
 
-            Vector3 screenPoint = new Vector3(
-                screenPosition.x,
-                screenPosition.y,
-                distanceFromCamera
-            );
-
-            Vector3 worldPosition =
-                _mainCamera.ScreenToWorldPoint(screenPoint);
-
-            worldPosition.z = 0f;
-
-            // Kiểm tra có tài nguyên tại vị trí click hay không.
-            // Dùng OverlapPointAll để không bỏ sót resource
-            // khi nhiều Collider2D chồng lên nhau.
             Collider2D[] hits = Physics2D.OverlapPointAll(
                 (Vector2)worldPosition
             );
 
+            // 1. Ưu tiên tấn công Unit hoặc Công trình phe địch nếu click trúng.
+            IDamageable enemyTarget = FindHostileTargetAtPoint(hits);
+            if (enemyTarget != null)
+            {
+                RTSUnitManager.Instance.CommandAttackTarget(enemyTarget);
+                return;
+            }
+
+            // 2. Kiểm tra tài nguyên tại vị trí click.
             for (int i = 0; i < hits.Length; i++)
             {
                 ResourceDeposit resource =
@@ -305,7 +338,7 @@ namespace AoEMini.Input
                 return;
             }
 
-            // Không click tài nguyên -> di chuyển thông thường.
+            // 3. Không click địch hay tài nguyên -> di chuyển thông thường.
             RTSUnitManager.Instance.CommandMoveTo(worldPosition);
         }
 
@@ -505,6 +538,12 @@ namespace AoEMini.Input
         private void OnCancel(
             UnityEngine.InputSystem.InputAction.CallbackContext context)
         {
+            if (RTSInputMode.IsAttackMoveActive)
+            {
+                RTSInputMode.ExitAttackMove();
+                return;
+            }
+
             if (SelectionSystem.Instance != null)
             {
                 SelectionSystem.Instance.ClearSelection();
@@ -516,6 +555,111 @@ namespace AoEMini.Input
             _buildingDemolition?.ClearSelection();
 
             HideSelectionBox();
+        }
+
+        // =========================================================
+        // ATTACK-MOVE & TARGETING
+        // =========================================================
+
+        private void OnAttackMove(
+            UnityEngine.InputSystem.InputAction.CallbackContext context)
+        {
+            if (RTSInputMode.IsWorldInputBlocked)
+                return;
+
+            if (!HasSelectedCombatUnit())
+                return;
+
+            RTSInputMode.EnterAttackMove();
+        }
+
+        private void ExecuteAttackMoveAtScreenPosition(Vector2 screenPosition)
+        {
+            if (_mainCamera == null || RTSUnitManager.Instance == null)
+            {
+                RTSInputMode.ExitAttackMove();
+                return;
+            }
+
+            Vector3 worldPosition = ScreenToWorld2D(screenPosition);
+            RTSUnitManager.Instance.IssueAttackMoveCommand(worldPosition);
+            RTSInputMode.ExitAttackMove();
+        }
+
+        private void HandleInputModeChanged(InputModeState newMode)
+        {
+            bool isAttackMove = newMode == InputModeState.AttackMove;
+            ApplyAttackMoveCursor(isAttackMove);
+            OnAttackMoveModeChanged?.Invoke(isAttackMove);
+        }
+
+        private void ApplyAttackMoveCursor(bool isAttackMove)
+        {
+            if (isAttackMove && _attackMoveCursor != null)
+            {
+                Cursor.SetCursor(_attackMoveCursor, _attackMoveCursorHotspot, CursorMode.Auto);
+            }
+            else
+            {
+                Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
+            }
+        }
+
+        private bool HasSelectedCombatUnit()
+        {
+            if (SelectionSystem.Instance == null)
+                return false;
+
+            IReadOnlyList<SelectableUnit> selected = SelectionSystem.Instance.SelectedUnits;
+            for (int i = 0; i < selected.Count; i++)
+            {
+                if (selected[i] != null && selected[i].GetComponent<UnitCombatController>() != null)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private IDamageable FindHostileTargetAtPoint(Collider2D[] hits)
+        {
+            if (hits == null)
+                return null;
+
+            for (int i = 0; i < hits.Length; i++)
+            {
+                if (hits[i] == null)
+                    continue;
+
+                IDamageable damageable = hits[i].GetComponentInParent<IDamageable>();
+                if (damageable == null || damageable.IsDead)
+                    continue;
+
+                if (damageable.TeamFaction == Faction.Neutral ||
+                    damageable.TeamFaction == _playerFaction)
+                {
+                    continue;
+                }
+
+                return damageable;
+            }
+
+            return null;
+        }
+
+        private Vector3 ScreenToWorld2D(Vector2 screenPosition)
+        {
+            float distanceFromCamera = Mathf.Abs(_mainCamera.transform.position.z);
+            Vector3 screenPoint = new Vector3(
+                screenPosition.x,
+                screenPosition.y,
+                distanceFromCamera
+            );
+
+            Vector3 worldPosition = _mainCamera.ScreenToWorldPoint(screenPoint);
+            worldPosition.z = 0f;
+            return worldPosition;
         }
     }
 }

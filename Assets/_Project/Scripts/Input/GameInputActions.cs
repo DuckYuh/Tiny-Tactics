@@ -181,6 +181,15 @@ public partial class @GameInputActions: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""AttackMove"",
+                    ""type"": ""Button"",
+                    ""id"": ""e4a9c210-7b3d-4f88-9c12-6d5e8a1b4f90"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -359,6 +368,17 @@ public partial class @GameInputActions: IInputActionCollection2, IDisposable
                     ""action"": ""RecallGroup3"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""f1b8d320-4c9a-4e21-8b77-9a0c3d2e5f11"",
+                    ""path"": ""<Keyboard>/a"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""AttackMove"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -377,6 +397,7 @@ public partial class @GameInputActions: IInputActionCollection2, IDisposable
         m_Player_RecallGroup1 = m_Player.FindAction("RecallGroup1", throwIfNotFound: true);
         m_Player_RecallGroup2 = m_Player.FindAction("RecallGroup2", throwIfNotFound: true);
         m_Player_RecallGroup3 = m_Player.FindAction("RecallGroup3", throwIfNotFound: true);
+        m_Player_AttackMove = m_Player.FindAction("AttackMove", throwIfNotFound: true);
     }
 
     ~@GameInputActions()
@@ -467,6 +488,7 @@ public partial class @GameInputActions: IInputActionCollection2, IDisposable
     private readonly InputAction m_Player_RecallGroup1;
     private readonly InputAction m_Player_RecallGroup2;
     private readonly InputAction m_Player_RecallGroup3;
+    private readonly InputAction m_Player_AttackMove;
     /// <summary>
     /// Provides access to input actions defined in input action map "Player".
     /// </summary>
@@ -518,6 +540,10 @@ public partial class @GameInputActions: IInputActionCollection2, IDisposable
         /// Provides access to the underlying input action "Player/RecallGroup3".
         /// </summary>
         public InputAction @RecallGroup3 => m_Wrapper.m_Player_RecallGroup3;
+        /// <summary>
+        /// Provides access to the underlying input action "Player/AttackMove".
+        /// </summary>
+        public InputAction @AttackMove => m_Wrapper.m_Player_AttackMove;
         /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
@@ -574,6 +600,9 @@ public partial class @GameInputActions: IInputActionCollection2, IDisposable
             @RecallGroup3.started += instance.OnRecallGroup3;
             @RecallGroup3.performed += instance.OnRecallGroup3;
             @RecallGroup3.canceled += instance.OnRecallGroup3;
+            @AttackMove.started += instance.OnAttackMove;
+            @AttackMove.performed += instance.OnAttackMove;
+            @AttackMove.canceled += instance.OnAttackMove;
         }
 
         /// <summary>
@@ -615,6 +644,9 @@ public partial class @GameInputActions: IInputActionCollection2, IDisposable
             @RecallGroup3.started -= instance.OnRecallGroup3;
             @RecallGroup3.performed -= instance.OnRecallGroup3;
             @RecallGroup3.canceled -= instance.OnRecallGroup3;
+            @AttackMove.started -= instance.OnAttackMove;
+            @AttackMove.performed -= instance.OnAttackMove;
+            @AttackMove.canceled -= instance.OnAttackMove;
         }
 
         /// <summary>
@@ -725,5 +757,12 @@ public partial class @GameInputActions: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnRecallGroup3(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "AttackMove" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnAttackMove(InputAction.CallbackContext context);
     }
 }
