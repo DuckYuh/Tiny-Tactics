@@ -46,6 +46,7 @@ namespace TinyTactics.Buildings
 
         public event Action<float> OnPawnSpawnProgressChanged;
         public event Action<IReadOnlyList<UnitDataSO>> OnPawnQueueUpdated;
+        public static event Action<CastleBuilding, GameObject> OnAnyPawnSpawned;
         public IReadOnlyList<UnitDataSO> PawnQueue => pawnQueue;
         public int CurrentPawnQueueCount => pawnQueue.Count;
         public int MaxPawnQueueSize => maxQueueSize;
@@ -154,14 +155,16 @@ namespace TinyTactics.Buildings
                 // Thêm và cấu hình FactionVisual tại runtime.
                 ConfigurePawnFaction(pawn);
 
-                // Chỉ quản lý Population của phe người chơi Blue.
-                if (IsPlayerFaction &&
-                    PopulationManager.Instance != null)
+                // Đăng ký dân số theo đúng phe của Castle.
+                if (PopulationManager.Instance != null)
                 {
                     PopulationManager.Instance.RegisterUnit(
+                        TeamFaction,
                         pawnData.PopulationCost
                     );
                 }
+
+                OnAnyPawnSpawned?.Invoke(this, pawn);
 
                 spawnedCount++;
             }
@@ -237,17 +240,17 @@ namespace TinyTactics.Buildings
             if (populationGranted)
                 return;
 
-            if (IsPlayerFaction &&
-                PopulationManager.Instance != null)
+            if (PopulationManager.Instance != null)
             {
                 PopulationManager.Instance.AddMaxPopulation(
+                    TeamFaction,
                     castlePopulationProvided
                 );
 
                 populationGranted = true;
 
                 Debug.Log(
-                    $"[CastleBuilding] Đã cấp +" +
+                    $"[CastleBuilding] {FactionId} đã cấp +" +
                     $"{castlePopulationProvided} Population.",
                     this
                 );
@@ -259,10 +262,10 @@ namespace TinyTactics.Buildings
             if (!populationGranted)
                 return;
 
-            if (IsPlayerFaction &&
-                PopulationManager.Instance != null)
+            if (PopulationManager.Instance != null)
             {
                 PopulationManager.Instance.RemoveMaxPopulation(
+                    TeamFaction,
                     castlePopulationProvided
                 );
 
@@ -355,11 +358,11 @@ namespace TinyTactics.Buildings
         #region Pawn Manual Spawn
 
         /// <summary>
-        /// Kiểm tra điều kiện sinh Pawn từ Castle.
+        /// Kiểm tra điều kiện sinh Pawn từ Castle theo đúng phe sở hữu.
         /// </summary>
         public bool CanSpawnPawn()
         {
-            if (isDestroyed || !IsPlayerFaction || pawnData == null)
+            if (isDestroyed || pawnData == null)
                 return false;
 
             ResourceManager resources = ResourceManager.Instance;
@@ -368,12 +371,12 @@ namespace TinyTactics.Buildings
             if (resources == null || population == null)
                 return false;
 
-            return pawnData.CanAfford(resources) &&
-                   population.CanSpawnUnit(pawnData.PopulationCost);
+            return pawnData.CanAfford(resources, TeamFaction) &&
+                   population.CanSpawnUnit(TeamFaction, pawnData.PopulationCost);
         }
 
         /// <summary>
-        /// Sinh một Pawn từ Castle của người chơi.
+        /// Sinh một Pawn từ Castle (dùng cho cả Player Blue và AI Red).
         /// </summary>
         public bool TrySpawnPawn()
         {
@@ -409,6 +412,7 @@ namespace TinyTactics.Buildings
             PopulationManager population = PopulationManager.Instance;
 
             bool paid = resources.ConsumeResource(
+                TeamFaction,
                 ResourceType.Meat,
                 pawnData.MeatCost
             );
@@ -417,12 +421,12 @@ namespace TinyTactics.Buildings
                 return false;
 
             if (pawnData.WoodCost > 0)
-                resources.ConsumeResource(ResourceType.Wood, pawnData.WoodCost);
+                resources.ConsumeResource(TeamFaction, ResourceType.Wood, pawnData.WoodCost);
 
             if (pawnData.GoldCost > 0)
-                resources.ConsumeResource(ResourceType.Gold, pawnData.GoldCost);
+                resources.ConsumeResource(TeamFaction, ResourceType.Gold, pawnData.GoldCost);
 
-            population.RegisterUnit(pawnData.PopulationCost);
+            population.RegisterUnit(TeamFaction, pawnData.PopulationCost);
 
             pawnQueue.Add(pawnData);
 
@@ -466,6 +470,8 @@ namespace TinyTactics.Buildings
             if (pawn != null)
             {
                 ConfigurePawnFaction(pawn);
+
+                OnAnyPawnSpawned?.Invoke(this, pawn);
 
                 PopulationManager population = PopulationManager.Instance;
                 if (population != null)
@@ -517,12 +523,12 @@ namespace TinyTactics.Buildings
 
                 if (resources != null)
                 {
-                    resources.AddResource(ResourceType.Meat, cancelledUnit.MeatCost);
-                    resources.AddResource(ResourceType.Wood, cancelledUnit.WoodCost);
-                    resources.AddResource(ResourceType.Gold, cancelledUnit.GoldCost);
+                    resources.AddResource(TeamFaction, ResourceType.Meat, cancelledUnit.MeatCost);
+                    resources.AddResource(TeamFaction, ResourceType.Wood, cancelledUnit.WoodCost);
+                    resources.AddResource(TeamFaction, ResourceType.Gold, cancelledUnit.GoldCost);
                 }
 
-                population?.UnregisterUnit(cancelledUnit.PopulationCost);
+                population?.UnregisterUnit(TeamFaction, cancelledUnit.PopulationCost);
             }
 
             if (index == 0)

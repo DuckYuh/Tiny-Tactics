@@ -1,19 +1,27 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using TinyTactics.Combat;
 
 namespace TinyTactics.Economy
 {
     /// <summary>
-    /// Singleton quản lý kho dự trữ tài nguyên của người chơi.
+    /// Singleton quản lý kho dự trữ tài nguyên cho phe người chơi (Blue) và các phe AI (Red,...).
     /// </summary>
     public class ResourceManager : MonoBehaviour
     {
         public static ResourceManager Instance { get; private set; }
 
-        private Dictionary<ResourceType, int> resources;
+        [Header("AI Starting Resources")]
+        [SerializeField] private int _aiStartingMeat = 100;
+        [SerializeField] private int _aiStartingWood = 150;
+        [SerializeField] private int _aiStartingGold = 50;
 
-        // Sự kiện báo cho HUD UI khi tài nguyên thay đổi
+        private Dictionary<ResourceType, int> resources;
+        private readonly Dictionary<Faction, Dictionary<ResourceType, int>> _factionResources =
+            new Dictionary<Faction, Dictionary<ResourceType, int>>();
+
+        // Sự kiện báo cho HUD UI khi tài nguyên của người chơi Blue thay đổi
         public event Action<ResourceType, int> OnResourceChanged;
 
         private void Awake()
@@ -24,14 +32,80 @@ namespace TinyTactics.Economy
                 return;
             }
             Instance = this;
-            
-            // Khởi tạo kho mặc định
+
+            // Khởi tạo kho mặc định cho người chơi Blue
             resources = new Dictionary<ResourceType, int>
             {
                 { ResourceType.Meat, 100 },
                 { ResourceType.Wood, 150 },
                 { ResourceType.Gold, 50 }
             };
+        }
+
+        private Dictionary<ResourceType, int> GetOrCreateFactionStock(Faction faction)
+        {
+            if (faction == Faction.Blue)
+                return resources;
+
+            if (!_factionResources.TryGetValue(faction, out Dictionary<ResourceType, int> stock))
+            {
+                stock = new Dictionary<ResourceType, int>
+                {
+                    { ResourceType.Meat, _aiStartingMeat },
+                    { ResourceType.Wood, _aiStartingWood },
+                    { ResourceType.Gold, _aiStartingGold }
+                };
+                _factionResources[faction] = stock;
+            }
+
+            return stock;
+        }
+
+        public void AddResource(Faction faction, ResourceType type, int amount)
+        {
+            if (faction == Faction.Blue)
+            {
+                AddResource(type, amount);
+                return;
+            }
+
+            if (amount <= 0) return;
+
+            Dictionary<ResourceType, int> stock = GetOrCreateFactionStock(faction);
+            stock[type] = stock.TryGetValue(type, out int current) ? current + amount : amount;
+        }
+
+        public int GetResourceAmount(Faction faction, ResourceType type)
+        {
+            if (faction == Faction.Blue)
+                return GetResourceAmount(type);
+
+            Dictionary<ResourceType, int> stock = GetOrCreateFactionStock(faction);
+            return stock.TryGetValue(type, out int amount) ? amount : 0;
+        }
+
+        public bool ConsumeResource(Faction faction, ResourceType type, int amount)
+        {
+            if (faction == Faction.Blue)
+                return ConsumeResource(type, amount);
+
+            if (amount <= 0) return true;
+
+            Dictionary<ResourceType, int> stock = GetOrCreateFactionStock(faction);
+            if (GetResourceAmount(faction, type) >= amount)
+            {
+                stock[type] -= amount;
+                return true;
+            }
+
+            return false;
+        }
+
+        public bool HasEnough(Faction faction, int meat, int wood, int gold)
+        {
+            return GetResourceAmount(faction, ResourceType.Meat) >= meat &&
+                   GetResourceAmount(faction, ResourceType.Wood) >= wood &&
+                   GetResourceAmount(faction, ResourceType.Gold) >= gold;
         }
 
         /// <summary>

@@ -25,6 +25,7 @@ namespace TinyTactics.Pathfinding
         public int GridWidth => gridWidth;
         public int GridHeight => gridHeight;
         public float CellSize => cellSize;
+        public Vector3 OriginPosition => originPosition;
 
         private void Awake()
         {

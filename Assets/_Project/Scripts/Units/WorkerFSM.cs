@@ -1,6 +1,8 @@
 using UnityEngine;
 using TinyTactics.Economy;
 using TinyTactics.Buildings;
+using TinyTactics.Combat;
+using TinyTactics.Factions;
 using System;
 using TinyTactics.Animation;
 
@@ -50,11 +52,32 @@ namespace TinyTactics.Units
         public static event Action<ResourceType, Vector3> OnAnyResourceHarvested;
 
         private UnitAnimationController unitAnimation;
+        private FactionVisual factionVisual;
+        private HealthSystem healthSystem;
+
+        public WorkerState CurrentState => currentState;
+        public ResourceType CurrentResourceType => heldType;
+
+        public Faction WorkerFaction
+        {
+            get
+            {
+                if (factionVisual != null && !string.IsNullOrWhiteSpace(factionVisual.FactionId))
+                    return FactionUtility.FromString(factionVisual.FactionId);
+
+                if (healthSystem != null)
+                    return healthSystem.TeamFaction;
+
+                return Faction.Blue;
+            }
+        }
 
         private void Awake()
         {
             unitController = GetComponent<UnitController>();
             unitAnimation = GetComponent<UnitAnimationController>();
+            factionVisual = GetComponent<FactionVisual>();
+            healthSystem = GetComponent<HealthSystem>();
         }
 
         private void Update()
@@ -314,8 +337,8 @@ namespace TinyTactics.Units
         {
             if (ResourceManager.Instance != null && heldAmount > 0)
             {
-                // Giao nộp
-                ResourceManager.Instance.AddResource(heldType, heldAmount);
+                // Giao nộp đúng vào kho tài nguyên của phe sở hữu nông dân
+                ResourceManager.Instance.AddResource(WorkerFaction, heldType, heldAmount);
                 heldAmount = 0;
             }
 
@@ -332,16 +355,27 @@ namespace TinyTactics.Units
         }
 
         /// <summary>
-        /// Quét tìm CastleDepositArea gần nhất trong cảnh.
+        /// Quét tìm CastleDepositArea gần nhất thuộc cùng phe trong cảnh.
         /// </summary>
         private void FindNearestCastle()
         {
             CastleDepositArea[] castles = FindObjectsOfType<CastleDepositArea>();
+            Faction selfFaction = WorkerFaction;
             float nearestDist = float.MaxValue;
             CastleDepositArea nearest = null;
 
             foreach (var c in castles)
             {
+                if (c == null)
+                    continue;
+
+                CastleBuilding castleBuilding = c.GetComponent<CastleBuilding>();
+                if (castleBuilding != null)
+                {
+                    if (castleBuilding.IsDestroyed || castleBuilding.TeamFaction != selfFaction)
+                        continue;
+                }
+
                 float d = Vector2.Distance(transform.position, c.transform.position);
                 if (d < nearestDist)
                 {

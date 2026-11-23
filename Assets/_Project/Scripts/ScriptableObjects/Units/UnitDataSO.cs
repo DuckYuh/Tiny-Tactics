@@ -96,5 +96,14 @@ namespace TinyTactics.Units
             if (resourceManager == null) return false;
             return resourceManager.HasEnough(meatCost, woodCost, goldCost);
         }
+
+        /// <summary>
+        /// Kiểm tra phe chỉ định có đủ tài nguyên để huấn luyện đơn vị này hay không.
+        /// </summary>
+        public bool CanAfford(Economy.ResourceManager resourceManager, Combat.Faction faction)
+        {
+            if (resourceManager == null) return false;
+            return resourceManager.HasEnough(faction, meatCost, woodCost, goldCost);
+        }
     }
 }

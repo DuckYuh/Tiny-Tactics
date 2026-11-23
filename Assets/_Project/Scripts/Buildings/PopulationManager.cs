@@ -1,15 +1,26 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
+using TinyTactics.Combat;
 
 namespace TinyTactics.Buildings
 {
     /// <summary>
-    /// Hệ thống Quản lý Dân số (Population System) theo kiến trúc Singleton.
-    /// Quản lý dân số hiện tại (CurrentPopulation) và giới hạn tối đa (MaxPopulation).
+    /// Hệ thống Quản lý Dân số (Population System) theo từng phe.
+    /// Phe người chơi (Blue) đồng bộ trực tiếp với HUD qua OnPopulationChanged.
     /// </summary>
     public class PopulationManager : MonoBehaviour
     {
+        private class FactionPopulationData
+        {
+            public int Current;
+            public int Max;
+        }
+
         private static PopulationManager _instance;
+
+        private readonly Dictionary<Faction, FactionPopulationData> _factionPopulations =
+            new Dictionary<Faction, FactionPopulationData>();
 
         public static PopulationManager Instance
         {
@@ -163,6 +174,93 @@ namespace TinyTactics.Buildings
         private void NotifyPopulationChanged()
         {
             OnPopulationChanged?.Invoke(CurrentPopulation, MaxPopulation);
+        }
+
+        private FactionPopulationData GetOrCreateFactionData(Faction faction)
+        {
+            if (!_factionPopulations.TryGetValue(faction, out FactionPopulationData data))
+            {
+                data = new FactionPopulationData();
+                _factionPopulations[faction] = data;
+            }
+
+            return data;
+        }
+
+        public int GetCurrentPopulation(Faction faction)
+        {
+            return faction == Faction.Blue
+                ? CurrentPopulation
+                : GetOrCreateFactionData(faction).Current;
+        }
+
+        public int GetMaxPopulation(Faction faction)
+        {
+            return faction == Faction.Blue
+                ? MaxPopulation
+                : GetOrCreateFactionData(faction).Max;
+        }
+
+        public void AddMaxPopulation(Faction faction, int amount)
+        {
+            if (faction == Faction.Blue)
+            {
+                AddMaxPopulation(amount);
+                return;
+            }
+
+            if (amount <= 0) return;
+
+            FactionPopulationData data = GetOrCreateFactionData(faction);
+            data.Max = Mathf.Min(data.Max + amount, hardCap);
+        }
+
+        public void RemoveMaxPopulation(Faction faction, int amount)
+        {
+            if (faction == Faction.Blue)
+            {
+                RemoveMaxPopulation(amount);
+                return;
+            }
+
+            if (amount <= 0) return;
+
+            FactionPopulationData data = GetOrCreateFactionData(faction);
+            data.Max = Mathf.Max(0, data.Max - amount);
+        }
+
+        public bool CanSpawnUnit(Faction faction, int populationCost = 1)
+        {
+            if (faction == Faction.Blue)
+                return CanSpawnUnit(populationCost);
+
+            FactionPopulationData data = GetOrCreateFactionData(faction);
+            return (data.Current + populationCost) <= data.Max;
+        }
+
+        public void RegisterUnit(Faction faction, int cost = 1)
+        {
+            if (faction == Faction.Blue)
+            {
+                RegisterUnit(cost);
+                return;
+            }
+
+            if (cost <= 0) return;
+            GetOrCreateFactionData(faction).Current += cost;
+        }
+
+        public void UnregisterUnit(Faction faction, int cost = 1)
+        {
+            if (faction == Faction.Blue)
+            {
+                UnregisterUnit(cost);
+                return;
+            }
+
+            if (cost <= 0) return;
+            FactionPopulationData data = GetOrCreateFactionData(faction);
+            data.Current = Mathf.Max(0, data.Current - cost);
         }
     }
 }
