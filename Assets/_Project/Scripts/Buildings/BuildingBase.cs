@@ -4,6 +4,7 @@ using UnityEngine;
 using TinyTactics.Pathfinding;
 using TinyTactics.CameraSystem;
 using TinyTactics.Audio;
+using TinyTactics.Combat;
 
 namespace TinyTactics.Buildings
 {
@@ -12,7 +13,7 @@ namespace TinyTactics.Buildings
     /// Quản lý máu (HP), kích thước ô lưới (Grid Size), điểm tập kết (Rally Point), nhận sát thương và giải phóng ô lưới khi bị phá hủy.
     /// </summary>
     [DisallowMultipleComponent]
-    public abstract class BuildingBase : MonoBehaviour
+    public abstract class BuildingBase : MonoBehaviour, IDamageable
     {
         [Header("Building Info")]
         [Tooltip("Tên định danh của công trình")]
@@ -56,6 +57,8 @@ namespace TinyTactics.Buildings
         public Vector2Int BuildingGridSize => buildingGridSize;
         public Transform RallyPoint => rallyPoint;
         public bool IsDestroyed => isDestroyed;
+        public bool IsDead => isDestroyed;
+        public Faction TeamFaction => FactionUtility.FromString(factionId);
         public bool IsPlayerFaction => string.Equals(factionId, "Blue", StringComparison.OrdinalIgnoreCase);
 
         /// <summary>
@@ -112,13 +115,14 @@ namespace TinyTactics.Buildings
         /// <summary>
         /// Nhận sát thương khi bị kẻ địch tấn công.
         /// </summary>
-        /// <param name="damage">Lượng sát thương nhận vào.</param>
-        public virtual void TakeDamage(int damage)
+        /// <param name="rawDamage">Lượng sát thương nhận vào.</param>
+        /// <param name="attacker">Đơn vị tấn công (tùy chọn).</param>
+        public virtual void TakeDamage(int rawDamage, GameObject attacker = null)
         {
-            if (isDestroyed || damage <= 0) return;
+            if (isDestroyed || rawDamage <= 0) return;
 
-            currentHP = Mathf.Clamp(currentHP - damage, 0, maxHP);
-            Debug.Log($"[{buildingName} ({factionId})] Nhận {damage} sát thương. HP còn lại: {currentHP}/{maxHP}");
+            currentHP = Mathf.Clamp(currentHP - rawDamage, 0, maxHP);
+            Debug.Log($"[{buildingName} ({factionId})] Nhận {rawDamage} sát thương. HP còn lại: {currentHP}/{maxHP}");
 
             OnHealthChanged?.Invoke(currentHP, maxHP);
 

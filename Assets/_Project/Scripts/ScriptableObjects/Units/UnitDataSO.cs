@@ -41,6 +41,35 @@ namespace TinyTactics.Units
         [Min(1)]
         [SerializeField] private int populationCost = 1;
 
+        [Header("Combat Stats")]
+        [Tooltip("Lượng máu tối đa của đơn vị")]
+        [Min(1)]
+        [SerializeField] private int _maxHP = 100;
+
+        [Tooltip("Sát thương gây ra (hoặc lượng hồi máu đối với Monk)")]
+        [Min(0)]
+        [SerializeField] private int _damage = 10;
+
+        [Tooltip("Tầm đánh hoặc tầm hồi máu")]
+        [Min(0f)]
+        [SerializeField] private float _attackRange = 1.2f;
+
+        [Tooltip("Thời gian hồi chiêu giữa các đòn đánh (giây)")]
+        [Min(0f)]
+        [SerializeField] private float _attackCooldown = 1.2f;
+
+        [Tooltip("Tốc độ di chuyển cơ bản")]
+        [Min(0f)]
+        [SerializeField] private float _moveSpeed = 3.5f;
+
+        [Tooltip("Chỉ số giáp giảm sát thương nhận vào")]
+        [Min(0)]
+        [SerializeField] private int _armor = 0;
+
+        [Tooltip("Tầm nhìn mở sương mù (Fog of War)")]
+        [Min(0f)]
+        [SerializeField] private float _visionRange = 7f;
+
         // Public Properties
         public string UnitName => unitName;
         public GameObject UnitPrefab => unitPrefab;
@@ -50,6 +79,14 @@ namespace TinyTactics.Units
         public int GoldCost => goldCost;
         public float TrainTime => trainTime;
         public int PopulationCost => populationCost;
+
+        public int MaxHP => _maxHP;
+        public int Damage => _damage;
+        public float AttackRange => _attackRange;
+        public float AttackCooldown => _attackCooldown;
+        public float MoveSpeed => _moveSpeed;
+        public int Armor => _armor;
+        public float VisionRange => _visionRange;
 
         /// <summary>
         /// Kiểm tra nhanh xem người chơi có đủ tài nguyên để huấn luyện đơn vị này hay không.

@@ -1,8 +1,9 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using AoEMini.Selection;
+using TinyTactics.Combat;
 using TinyTactics.Economy;
-using System;
 
 namespace TinyTactics.Units
 {
@@ -40,48 +41,112 @@ namespace TinyTactics.Units
         }
 
         /// <summary>
-        /// Ra lệnh di chuyển cho toàn bộ đơn vị được chọn.
-        /// Được gọi từ InputController khi người chơi click chuột phải.
+        /// Ra lệnh di chuyển thường cho toàn bộ đơn vị được chọn (bỏ qua địch trên đường đi).
+        /// Được gọi từ InputController khi người chơi click chuột phải xuống mặt đất.
         /// </summary>
         public void CommandMoveTo(Vector3 targetWorldPosition)
         {
-            if (SelectionSystem.Instance == null)
-                return;
-
-            IReadOnlyList<SelectableUnit> selectedSelectables = SelectionSystem.Instance.SelectedUnits;
-            if (selectedSelectables.Count == 0)
-                return;
-
-            // Lọc ra các UnitController từ danh sách được chọn
-            List<UnitController> activeUnits = new List<UnitController>();
-            for (int i = 0; i < selectedSelectables.Count; i++)
-            {
-                if (selectedSelectables[i] != null)
-                {
-                    UnitController controller = selectedSelectables[i].GetComponent<UnitController>();
-                    if (controller != null)
-                    {
-                        activeUnits.Add(controller);
-                    }
-                }
-            }
-
+            List<UnitController> activeUnits = CollectSelectedUnitControllers();
             int unitCount = activeUnits.Count;
             if (unitCount == 0) return;
 
-            // Tính toán mảng điểm đến theo đội hình
             List<Vector3> formationPositions = GetFormationPositions(targetWorldPosition, unitCount);
 
-            // Gửi lệnh di chuyển đến từng đơn vị tương ứng
             for (int i = 0; i < unitCount; i++)
             {
-                activeUnits[i].MoveTo(formationPositions[i]);
+                UnitCombatController combat = activeUnits[i].GetComponent<UnitCombatController>();
+                if (combat != null)
+                {
+                    combat.OrderMoveTo(formationPositions[i]);
+                }
+                else
+                {
+                    activeUnits[i].MoveTo(formationPositions[i]);
+                }
             }
 
-            // Chỉ gửi một event cho toàn bộ đội hình.
             MoveCommandIssued?.Invoke();
-            
+
             Debug.Log($"[RTSUnitManager] Đã ra lệnh di chuyển {unitCount} đơn vị tới {targetWorldPosition}");
+        }
+
+        /// <summary>
+        /// Ra lệnh Attack-Move (A + Click) theo đội hình tới vị trí đích.
+        /// </summary>
+        public void IssueAttackMoveCommand(Vector3 targetCenter)
+        {
+            List<UnitController> activeUnits = CollectSelectedUnitControllers();
+            int unitCount = activeUnits.Count;
+            if (unitCount == 0) return;
+
+            List<Vector3> formationPositions = GetFormationPositions(targetCenter, unitCount);
+
+            for (int i = 0; i < unitCount; i++)
+            {
+                UnitCombatController combat = activeUnits[i].GetComponent<UnitCombatController>();
+                if (combat != null)
+                {
+                    combat.AttackMoveTo(formationPositions[i]);
+                }
+                else
+                {
+                    activeUnits[i].MoveTo(formationPositions[i]);
+                }
+            }
+
+            MoveCommandIssued?.Invoke();
+
+            Debug.Log($"[RTSUnitManager] Đã ra lệnh Attack-Move {unitCount} đơn vị tới {targetCenter}");
+        }
+
+        /// <summary>
+        /// Ra lệnh tấn công một mục tiêu chỉ định (Unit hoặc Công trình địch).
+        /// </summary>
+        public void CommandAttackTarget(IDamageable target)
+        {
+            if (target == null || target.IsDead)
+                return;
+
+            List<UnitController> activeUnits = CollectSelectedUnitControllers();
+            int commandedCount = 0;
+
+            for (int i = 0; i < activeUnits.Count; i++)
+            {
+                UnitCombatController combat = activeUnits[i].GetComponent<UnitCombatController>();
+                if (combat == null)
+                    continue;
+
+                combat.AttackTarget(target);
+                commandedCount++;
+            }
+
+            if (commandedCount > 0)
+            {
+                MoveCommandIssued?.Invoke();
+                Debug.Log($"[RTSUnitManager] Đã ra lệnh cho {commandedCount} đơn vị tấn công mục tiêu.");
+            }
+        }
+
+        private List<UnitController> CollectSelectedUnitControllers()
+        {
+            List<UnitController> activeUnits = new List<UnitController>();
+            if (SelectionSystem.Instance == null)
+                return activeUnits;
+
+            IReadOnlyList<SelectableUnit> selectedSelectables = SelectionSystem.Instance.SelectedUnits;
+            for (int i = 0; i < selectedSelectables.Count; i++)
+            {
+                if (selectedSelectables[i] == null)
+                    continue;
+
+                UnitController controller = selectedSelectables[i].GetComponent<UnitController>();
+                if (controller != null)
+                {
+                    activeUnits.Add(controller);
+                }
+            }
+
+            return activeUnits;
         }
 
         /// <summary>

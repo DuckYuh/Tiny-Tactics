@@ -30,7 +30,11 @@ namespace TinyTactics.Audio
         BuildingPlace,
         BuildingDestroy,
 
-        GameStart
+        GameStart,
+
+        ArrowShoot,
+        ArrowHit,
+        MonkHeal
     }
 
     /// <summary>

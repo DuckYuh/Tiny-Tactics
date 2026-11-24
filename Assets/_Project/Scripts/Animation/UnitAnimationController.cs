@@ -23,16 +23,26 @@ namespace TinyTactics.Animation
         private static readonly int AttackDirectionHash =
             Animator.StringToHash("AttackDirection");
 
+        private static readonly int DieHash =
+            Animator.StringToHash("Die");
+
+        private static readonly int IsDeadHash =
+            Animator.StringToHash("IsDead");
+
         private Animator animator;
 
         private bool isMoving;
         private int harvestType;
+        private bool _isDead;
 
         private bool supportsHarvest;
         private bool supportsAttack;
 
         private SpriteRenderer spriteRenderer;
         private bool supportsAttackDirection;
+        private bool _supportsDieTrigger;
+        private bool _supportsDieBool;
+        private bool _supportsIsDeadBool;
 
         private void Awake()
         {
@@ -61,15 +71,34 @@ namespace TinyTactics.Animation
                 {
                     supportsAttackDirection = true;
                 }
+                else if (parameter.nameHash == DieHash)
+                {
+                    if (parameter.type == AnimatorControllerParameterType.Trigger)
+                        _supportsDieTrigger = true;
+                    else if (parameter.type == AnimatorControllerParameterType.Bool)
+                        _supportsDieBool = true;
+                }
+                else if (parameter.nameHash == IsDeadHash &&
+                        parameter.type == AnimatorControllerParameterType.Bool)
+                {
+                    _supportsIsDeadBool = true;
+                }
             }
 
             isMoving = false;
             harvestType = 0;
+            _isDead = false;
 
             animator.SetBool(IsMovingHash, false);
 
             if (supportsHarvest)
                 animator.SetInteger(HarvestTypeHash, 0);
+
+            if (_supportsDieBool)
+                animator.SetBool(DieHash, false);
+
+            if (_supportsIsDeadBool)
+                animator.SetBool(IsDeadHash, false);
         }
 
 
@@ -82,7 +111,7 @@ namespace TinyTactics.Animation
         /// </param>
         public bool PlayDirectionalAttack(Vector3 targetPosition)
         {
-            if (!supportsAttack || !supportsAttackDirection ||
+            if (_isDead || !supportsAttack || !supportsAttackDirection ||
                 !animator.isActiveAndEnabled)
             {
                 return false;
@@ -141,7 +170,7 @@ namespace TinyTactics.Animation
         /// </summary>
         public void SetMoving(bool moving)
         {
-            if (isMoving == moving)
+            if (_isDead || isMoving == moving)
                 return;
 
             isMoving = moving;
@@ -154,7 +183,7 @@ namespace TinyTactics.Animation
         /// </summary>
         public void SetHarvestType(int type)
         {
-            if (!supportsHarvest)
+            if (_isDead || !supportsHarvest)
                 return;
 
             type = Mathf.Clamp(type, 0, 3);
@@ -180,11 +209,94 @@ namespace TinyTactics.Animation
         /// </summary>
         public bool PlayAttack()
         {
-            if (!supportsAttack || !animator.isActiveAndEnabled)
+            if (_isDead || !supportsAttack || !animator.isActiveAndEnabled)
                 return false;
 
             animator.SetTrigger(AttackHash);
             return true;
+        }
+
+        /// <summary>
+        /// Kích hoạt animation Die và khóa toàn bộ chuyển đổi trạng thái khác sau khi đã chết.
+        /// </summary>
+        public void PlayDie()
+        {
+            if (_isDead)
+                return;
+
+            _isDead = true;
+            isMoving = false;
+            harvestType = 0;
+
+            if (animator == null || !animator.isActiveAndEnabled)
+                return;
+
+            animator.SetBool(IsMovingHash, false);
+
+            if (supportsHarvest)
+                animator.SetInteger(HarvestTypeHash, 0);
+
+            if (supportsAttack)
+                animator.ResetTrigger(AttackHash);
+
+            if (_supportsIsDeadBool)
+                animator.SetBool(IsDeadHash, true);
+
+            if (_supportsDieTrigger)
+                animator.SetTrigger(DieHash);
+            else if (_supportsDieBool)
+                animator.SetBool(DieHash, true);
+        }
+
+        /// <summary>
+        /// Khôi phục trạng thái Animator khi Unit được tái sử dụng từ Object Pool.
+        /// </summary>
+        public void ResetAnimationState()
+        {
+            _isDead = false;
+            isMoving = false;
+            harvestType = 0;
+
+            if (animator == null)
+                return;
+
+            animator.SetBool(IsMovingHash, false);
+
+            if (supportsHarvest)
+                animator.SetInteger(HarvestTypeHash, 0);
+
+            if (_supportsIsDeadBool)
+                animator.SetBool(IsDeadHash, false);
+
+            if (_supportsDieBool)
+                animator.SetBool(DieHash, false);
+
+            if (_supportsDieTrigger)
+                animator.ResetTrigger(DieHash);
+
+            if (supportsAttack)
+                animator.ResetTrigger(AttackHash);
+        }
+
+        /// <summary>
+        /// Lấy thời lượng clip Die hiện tại nếu Animator đã cấu hình, ngược lại trả về 0.
+        /// </summary>
+        public float GetDeathAnimationDuration()
+        {
+            if (animator == null || animator.runtimeAnimatorController == null)
+                return 0f;
+
+            AnimationClip[] clips = animator.runtimeAnimatorController.animationClips;
+            for (int i = 0; i < clips.Length; i++)
+            {
+                if (clips[i] != null &&
+                    clips[i].name.IndexOf("Die", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return clips[i].length;
+                }
+            }
+
+            return 0f;
         }
 
 #if UNITY_EDITOR
