@@ -262,15 +262,12 @@ namespace TinyTactics.Combat
 
             _isPopulationUnregistered = true;
 
-            if (TeamFaction != Faction.Blue)
-                return;
-
             PopulationManager populationManager = PopulationManager.Instance;
             if (populationManager == null)
                 return;
 
             int popCost = _unitData != null ? _unitData.PopulationCost : 1;
-            populationManager.UnregisterUnit(popCost);
+            populationManager.UnregisterUnit(TeamFaction, popCost);
         }
 
         private IEnumerator DespawnAfterDeathAnimation()

@@ -42,11 +42,11 @@ namespace TinyTactics.Buildings
         {
             if (_populationAdded) return;
 
-            if (IsPlayerFaction && PopulationManager.Instance != null)
+            if (PopulationManager.Instance != null)
             {
-                PopulationManager.Instance.AddMaxPopulation(populationBonus);
+                PopulationManager.Instance.AddMaxPopulation(TeamFaction, populationBonus);
                 _populationAdded = true;
-                Debug.Log($"<color=green>[HouseBuilding] Nhà dân hoàn thành: Cấp thêm +{populationBonus} Sức chứa tối đa.</color>");
+                Debug.Log($"<color=green>[HouseBuilding] Nhà dân ({factionId}) hoàn thành: Cấp thêm +{populationBonus} Sức chứa tối đa.</color>");
             }
         }
 
@@ -57,7 +57,7 @@ namespace TinyTactics.Buildings
         {
             if (isDestroyed) return;
 
-            // 1. Trừ ngay 5 Max Population nếu thuộc phe người chơi
+            // 1. Trừ ngay 5 Max Population
             RemoveHousePopulation();
 
             // 2. Gọi logic cơ sở: Giải phóng ô Grid, hiệu ứng sập nhà và rung camera
@@ -71,11 +71,11 @@ namespace TinyTactics.Buildings
         {
             if (!_populationAdded) return;
 
-            if (IsPlayerFaction && PopulationManager.Instance != null)
+            if (PopulationManager.Instance != null)
             {
-                PopulationManager.Instance.RemoveMaxPopulation(populationBonus);
+                PopulationManager.Instance.RemoveMaxPopulation(TeamFaction, populationBonus);
                 _populationAdded = false;
-                Debug.Log($"<color=yellow>[HouseBuilding] Nhà dân bị phá hủy: Đã trừ -{populationBonus} Sức chứa tối đa.</color>");
+                Debug.Log($"<color=yellow>[HouseBuilding] Nhà dân ({factionId}) bị phá hủy: Đã trừ -{populationBonus} Sức chứa tối đa.</color>");
             }
         }
 

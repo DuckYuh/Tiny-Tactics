@@ -189,32 +189,32 @@ namespace TinyTactics.Buildings
                 return false;
             }
 
-            // 2. Kiểm tra tài nguyên người chơi
+            // 2. Kiểm tra tài nguyên theo phe của Nhà lính
             ResourceManager res = ResourceManager.Instance;
-            if (res == null || !res.HasEnough(unitData.MeatCost, unitData.WoodCost, unitData.GoldCost))
+            if (res == null || !res.HasEnough(TeamFaction, unitData.MeatCost, unitData.WoodCost, unitData.GoldCost))
             {
-                Debug.LogWarning($"[Barracks] Không đủ tài nguyên để huấn luyện {unitData.UnitName}! " +
+                Debug.LogWarning($"[Barracks ({factionId})] Không đủ tài nguyên để huấn luyện {unitData.UnitName}! " +
                                  $"Cần: {unitData.MeatCost} Thịt, {unitData.WoodCost} Gỗ, {unitData.GoldCost} Vàng.");
                 return false;
             }
 
-            // 3. Kiểm tra dân số còn chỗ trống
+            // 3. Kiểm tra dân số còn chỗ trống theo phe
             PopulationManager pop = PopulationManager.Instance;
-            if (pop != null && !pop.CanSpawnUnit(unitData.PopulationCost))
+            if (pop != null && !pop.CanSpawnUnit(TeamFaction, unitData.PopulationCost))
             {
-                Debug.LogWarning($"[Barracks] Đã chạm giới hạn dân số ({pop.CurrentPopulation}/{pop.MaxPopulation})! Hãy xây thêm Nhà dân (House).");
+                Debug.LogWarning($"[Barracks ({factionId})] Đã chạm giới hạn dân số ({pop.GetCurrentPopulation(TeamFaction)}/{pop.GetMaxPopulation(TeamFaction)})!");
                 return false;
             }
 
             // 4. Khấu trừ tài nguyên ngay lập tức
-            if (unitData.MeatCost > 0) res.ConsumeResource(ResourceType.Meat, unitData.MeatCost);
-            if (unitData.WoodCost > 0) res.ConsumeResource(ResourceType.Wood, unitData.WoodCost);
-            if (unitData.GoldCost > 0) res.ConsumeResource(ResourceType.Gold, unitData.GoldCost);
+            if (unitData.MeatCost > 0) res.ConsumeResource(TeamFaction, ResourceType.Meat, unitData.MeatCost);
+            if (unitData.WoodCost > 0) res.ConsumeResource(TeamFaction, ResourceType.Wood, unitData.WoodCost);
+            if (unitData.GoldCost > 0) res.ConsumeResource(TeamFaction, ResourceType.Gold, unitData.GoldCost);
 
             // 5. Đăng ký tạm dân số (giữ chỗ trong lúc huấn luyện)
             if (pop != null)
             {
-                pop.RegisterUnit(unitData.PopulationCost);
+                pop.RegisterUnit(TeamFaction, unitData.PopulationCost);
             }
 
             // 6. Thêm vào hàng đợi
@@ -317,20 +317,20 @@ namespace TinyTactics.Buildings
                 return;
             }
 
-            // 1. Hoàn lại 100% tài nguyên đã khấu trừ
+            // 1. Hoàn lại 100% tài nguyên đã khấu trừ theo phe
             ResourceManager res = ResourceManager.Instance;
             if (res != null)
             {
-                if (cancelledUnit.MeatCost > 0) res.AddResource(ResourceType.Meat, cancelledUnit.MeatCost);
-                if (cancelledUnit.WoodCost > 0) res.AddResource(ResourceType.Wood, cancelledUnit.WoodCost);
-                if (cancelledUnit.GoldCost > 0) res.AddResource(ResourceType.Gold, cancelledUnit.GoldCost);
+                if (cancelledUnit.MeatCost > 0) res.AddResource(TeamFaction, ResourceType.Meat, cancelledUnit.MeatCost);
+                if (cancelledUnit.WoodCost > 0) res.AddResource(TeamFaction, ResourceType.Wood, cancelledUnit.WoodCost);
+                if (cancelledUnit.GoldCost > 0) res.AddResource(TeamFaction, ResourceType.Gold, cancelledUnit.GoldCost);
             }
 
-            // 2. Hoàn trả dân số đã giữ chỗ
+            // 2. Hoàn trả dân số đã giữ chỗ theo phe
             PopulationManager pop = PopulationManager.Instance;
             if (pop != null)
             {
-                pop.UnregisterUnit(cancelledUnit.PopulationCost);
+                pop.UnregisterUnit(TeamFaction, cancelledUnit.PopulationCost);
             }
 
             // 3. Xóa khỏi hàng đợi
