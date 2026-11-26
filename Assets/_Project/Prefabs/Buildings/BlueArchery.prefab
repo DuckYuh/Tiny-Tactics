@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 2475404707600893226}
   - component: {fileID: 8098755132699724136}
   - component: {fileID: -2416366219138909744}
+  - component: {fileID: 7547443735196875576}
   m_Layer: 11
   m_Name: BlueArchery
   m_TagString: Untagged
@@ -172,3 +173,18 @@ MonoBehaviour:
   spawnPoint: {fileID: 0}
   spawnOffsetDistance: 1.8
   maxQueueSize: 5
+--- !u!114 &7547443735196875576
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7663764298266089743}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aedadc8c2c8a5934989c1e63c39f022f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _visionRadius: 8
+  _ownerFaction: 1
+  _syncFromUnitData: 0

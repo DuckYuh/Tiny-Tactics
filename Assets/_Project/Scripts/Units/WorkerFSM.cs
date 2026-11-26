@@ -54,6 +54,7 @@ namespace TinyTactics.Units
         private UnitAnimationController unitAnimation;
         private FactionVisual factionVisual;
         private HealthSystem healthSystem;
+        private UnitFaction unitFaction;
 
         public WorkerState CurrentState => currentState;
         public ResourceType CurrentResourceType => heldType;
@@ -62,11 +63,17 @@ namespace TinyTactics.Units
         {
             get
             {
-                if (factionVisual != null && !string.IsNullOrWhiteSpace(factionVisual.FactionId))
-                    return FactionUtility.FromString(factionVisual.FactionId);
+                if (unitFaction != null)
+                    return unitFaction.TeamFaction;
 
                 if (healthSystem != null)
                     return healthSystem.TeamFaction;
+
+                if (factionVisual != null &&
+                    !string.IsNullOrWhiteSpace(factionVisual.FactionId))
+                {
+                    return FactionUtility.FromString(factionVisual.FactionId);
+                }
 
                 return Faction.Blue;
             }
@@ -78,6 +85,7 @@ namespace TinyTactics.Units
             unitAnimation = GetComponent<UnitAnimationController>();
             factionVisual = GetComponent<FactionVisual>();
             healthSystem = GetComponent<HealthSystem>();
+            unitFaction = GetComponent<UnitFaction>();
         }
 
         private void Update()

@@ -105,6 +105,31 @@ namespace TinyTactics.Buildings
                 CompletePawnSpawn();
         }
 
+        /// <summary>
+        /// Gán gameplay faction cho unit ngay sau khi Instantiate.
+        /// </summary>
+        private bool ConfigurePawnIdentity(GameObject pawn)
+        {
+            if (pawn == null)
+                return false;
+
+            UnitFaction identity = pawn.GetComponent<UnitFaction>();
+
+            if (identity == null)
+            {
+                Debug.LogError(
+                    $"[CastleBuilding] {pawn.name} thiếu UnitFaction trên prefab!",
+                    pawn
+                );
+
+                Destroy(pawn);
+                return false;
+            }
+
+            identity.SetFaction(TeamFaction);
+            return true;
+        }
+
         #region Starting Pawn Spawn
 
         /// <summary>
@@ -152,7 +177,11 @@ namespace TinyTactics.Buildings
                 if (pawn == null)
                     continue;
 
-                // Thêm và cấu hình FactionVisual tại runtime.
+                // Gán gameplay faction trước khi cấu hình visual.
+                if (!ConfigurePawnIdentity(pawn))
+                    continue;
+
+                // Cấu hình Animator và Minimap.
                 ConfigurePawnFaction(pawn);
 
                 // Đăng ký dân số theo đúng phe của Castle.
@@ -467,7 +496,7 @@ namespace TinyTactics.Buildings
                 Quaternion.identity
             );
 
-            if (pawn != null)
+            if (pawn != null && ConfigurePawnIdentity(pawn))
             {
                 ConfigurePawnFaction(pawn);
 

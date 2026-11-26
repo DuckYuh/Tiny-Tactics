@@ -16,6 +16,11 @@ GameObject:
   - component: {fileID: 3000000000000007}
   - component: {fileID: 3000000000000008}
   - component: {fileID: -2142929882032869162}
+  - component: {fileID: -3316200850004657051}
+  - component: {fileID: -4306132280611473741}
+  - component: {fileID: 1706625898312082803}
+  - component: {fileID: -448305054344681797}
+  - component: {fileID: 3391248606193673904}
   m_Layer: 7
   m_Name: Lancer_Blue
   m_TagString: Untagged
@@ -205,3 +210,88 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 82d7ee095dbed314c98815fb7a586385, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &-3316200850004657051
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3000000000000001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bf5086ce427a29543bee6af981681ef3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  faction: 1
+--- !u!114 &-4306132280611473741
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3000000000000001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c6925c7615a2590499881de6b9819830, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _unitData: {fileID: 11400000, guid: 92e79544752c43e089106cd395679ff0, type: 2}
+  _defaultFaction: 1
+  _deathCleanupDelay: 1
+  _currentHP: 110
+  _maxHP: 110
+  _armor: 2
+  _isDead: 0
+--- !u!114 &1706625898312082803
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3000000000000001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0f5b3268c80e99749942a07fa87f9cd8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _unitData: {fileID: 11400000, guid: 92e79544752c43e089106cd395679ff0, type: 2}
+  _aggroRange: 5
+  _scanInterval: 0.15
+  _chaseRepathInterval: 0.25
+  _targetLayerMask:
+    serializedVersion: 2
+    m_Bits: 384
+  _isRanged: 0
+  _projectilePrefab: {fileID: 0}
+  _firePoint: {fileID: 0}
+  _orderMode: 0
+--- !u!114 &-448305054344681797
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3000000000000001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aedadc8c2c8a5934989c1e63c39f022f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _visionRadius: 6
+  _ownerFaction: 1
+  _syncFromUnitData: 1
+--- !u!114 &3391248606193673904
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3000000000000001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 824b952ba7f41294d8cce478fb024fd3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _visibleInExploredFog: 0
+  _hideMinimapMarkerInFog: 1
+  _extraVisualObjects: []

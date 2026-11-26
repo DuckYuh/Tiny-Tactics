@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using TinyTactics.Units;
 using TinyTactics.Economy;
+using TinyTactics.Factions;
 
 namespace TinyTactics.Buildings
 {
@@ -239,13 +240,15 @@ namespace TinyTactics.Buildings
         /// </summary>
         private void CompleteTraining(UnitDataSO unitData)
         {
-            // Sinh quân trên thế giới
-            SpawnUnit(unitData);
+            // Nếu spawn thất bại, hoàn trả tài nguyên và Population.
+            if (!SpawnUnit(unitData))
+            {
+                CancelQueue(0);
+                return;
+            }
 
-            // Xóa khỏi hàng đợi
             _trainingQueue.RemoveAt(0);
 
-            // Chuẩn bị cho đơn vị tiếp theo trong hàng đợi (nếu có)
             if (_trainingQueue.Count > 0)
             {
                 UnitDataSO nextUnit = _trainingQueue[0];
@@ -264,36 +267,71 @@ namespace TinyTactics.Buildings
         /// <summary>
         /// Khởi tạo Prefab của lính và ra lệnh di chuyển ra điểm tập kết (Rally Point).
         /// </summary>
-        private void SpawnUnit(UnitDataSO unitData)
+        private bool SpawnUnit(UnitDataSO unitData)
         {
             if (unitData == null || unitData.UnitPrefab == null)
             {
-                Debug.LogError($"[Barracks] Không thể sinh quân: Prefab của {unitData?.UnitName} bị null!");
-                return;
+                Debug.LogError(
+                    $"[Barracks] Không thể sinh quân: Prefab của {unitData?.UnitName} bị null!"
+                );
+
+                return false;
             }
 
             Vector3 spawnPos = GetSpawnPosition();
 
-            // 1. Instantiate lính tại điểm Spawn
-            GameObject spawnedUnit = Instantiate(unitData.UnitPrefab, spawnPos, Quaternion.identity);
+            // 1. Spawn unit.
+            GameObject spawnedUnit = Instantiate(
+                unitData.UnitPrefab,
+                spawnPos,
+                Quaternion.identity
+            );
+
+            if (spawnedUnit == null)
+                return false;
+
+            // 2. Gán gameplay faction.
+            UnitFaction identity = spawnedUnit.GetComponent<UnitFaction>();
+
+            if (identity == null)
+            {
+                Debug.LogError(
+                    $"[Barracks] {spawnedUnit.name} thiếu UnitFaction trên prefab!",
+                    spawnedUnit
+                );
+
+                Destroy(spawnedUnit);
+                return false;
+            }
+
+            identity.SetFaction(TeamFaction);
+
             spawnedUnit.name = $"{unitData.UnitName}_{spawnedUnit.GetInstanceID()}";
 
-            // 2. Ra lệnh cho lính tự động bước ra điểm tập kết (Rally Point)
+            // 3. Di chuyển ra Rally Point.
             UnitController controller = spawnedUnit.GetComponent<UnitController>();
             Vector3 targetRallyPoint = GetRallyPointPosition();
 
             if (controller != null)
             {
                 controller.MoveTo(targetRallyPoint);
-                Debug.Log($"<color=green>[Barracks] {unitData.UnitName} đã sinh ra tại {spawnPos} " +
-                          $"và tự động di chuyển ra Rally Point: {targetRallyPoint}.</color>");
             }
             else
             {
-                Debug.LogWarning($"[Barracks] Unit {spawnedUnit.name} không có component UnitController!");
+                Debug.LogWarning(
+                    $"[Barracks] Unit {spawnedUnit.name} không có UnitController!"
+                );
             }
 
+            // 4. Thông báo unit đã spawn.
             OnAnyUnitTrained?.Invoke(this, spawnedUnit);
+
+            Debug.Log(
+                $"[Barracks] Spawn {unitData.UnitName} thành công. " +
+                $"Faction: {TeamFaction}, Position: {spawnPos}."
+            );
+
+            return true;
         }
 
         /// <summary>

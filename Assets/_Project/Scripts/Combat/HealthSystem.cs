@@ -42,6 +42,7 @@ namespace TinyTactics.Combat
         private FactionVisual _factionVisual;
         private WorkerFSM _workerFSM;
         private Collider2D[] _colliders;
+        private UnitFaction _unitFaction;
 
         public int CurrentHP => _currentHP;
         public int MaxHP => _maxHP;
@@ -53,14 +54,18 @@ namespace TinyTactics.Combat
         {
             get
             {
-                if (_factionVisual != null && !string.IsNullOrWhiteSpace(_factionVisual.FactionId))
+                // Gameplay identity luôn được ưu tiên.
+                if (_unitFaction != null)
+                    return _unitFaction.TeamFaction;
+
+                // Fallback cho các unit cũ chưa có UnitFaction.
+                if (_overrideFaction.HasValue)
+                    return _overrideFaction.Value;
+
+                if (_factionVisual != null &&
+                    !string.IsNullOrWhiteSpace(_factionVisual.FactionId))
                 {
                     return FactionUtility.FromString(_factionVisual.FactionId);
-                }
-
-                if (_overrideFaction.HasValue)
-                {
-                    return _overrideFaction.Value;
                 }
 
                 return _defaultFaction;
@@ -112,6 +117,9 @@ namespace TinyTactics.Combat
 
             if (_colliders == null || _colliders.Length == 0)
                 _colliders = GetComponentsInChildren<Collider2D>(true);
+
+            if (_unitFaction == null)
+                _unitFaction = GetComponent<UnitFaction>();
         }
 
         /// <summary>
@@ -157,10 +165,11 @@ namespace TinyTactics.Combat
             _overrideFaction = faction;
             _defaultFaction = faction;
 
+            if (_unitFaction != null)
+                _unitFaction.SetFaction(faction);
+
             if (_factionVisual != null)
-            {
                 _factionVisual.SetFaction(FactionUtility.ToFactionId(faction));
-            }
         }
 
         /// <summary>

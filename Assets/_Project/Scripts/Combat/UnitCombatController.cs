@@ -51,7 +51,6 @@ namespace TinyTactics.Combat
         private UnitController _unitController;
         private HealthSystem _healthSystem;
         private UnitAnimationController _unitAnimation;
-        private FactionVisual _factionVisual;
 
         private IDamageable _currentTarget;
         private Vector3 _attackMoveDestination;
@@ -76,7 +75,6 @@ namespace TinyTactics.Combat
             _unitController = GetComponent<UnitController>();
             _healthSystem = GetComponent<HealthSystem>();
             _unitAnimation = GetComponent<UnitAnimationController>();
-            _factionVisual = GetComponent<FactionVisual>();
 
             SyncStatsFromData();
         }
@@ -430,13 +428,9 @@ namespace TinyTactics.Combat
 
         protected Faction GetSelfFaction()
         {
-            if (_healthSystem != null)
-                return _healthSystem.TeamFaction;
-
-            if (_factionVisual != null)
-                return FactionUtility.FromString(_factionVisual.FactionId);
-
-            return Faction.Blue;
+            return _healthSystem != null
+                ? _healthSystem.TeamFaction
+                : Faction.Neutral;
         }
 
         private Vector3 GetClosestPointOnTarget(MonoBehaviour targetMono)
