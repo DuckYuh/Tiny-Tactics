@@ -2,20 +2,19 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using TinyTactics.Combat;
+using TinyTactics.Factions;
 
 namespace AoEMini.Selection
 {
     /// <summary>
-    /// Quản lý các đơn vị đang được chọn.
-    /// Phát sự kiện khi thao tác chọn thành công.
+    /// Quản lý lựa chọn unit của Player.
+    /// Player chỉ được chọn unit thuộc phe Blue.
     /// </summary>
     public sealed class SelectionSystem : MonoBehaviour
     {
         public static SelectionSystem Instance { get; private set; }
 
-        /// <summary>
-        /// Phát một lần sau khi thao tác chọn có kết quả.
-        /// </summary>
         public event Action SelectionCompleted;
 
         private readonly List<SelectableUnit> _selectedUnits = new();
@@ -40,14 +39,29 @@ namespace AoEMini.Selection
                 Instance = null;
         }
 
+        /// <summary>
+        /// Chỉ cho phép chọn unit có HealthSystem thuộc phe Blue.
+        /// </summary>
+        private bool IsPlayerOwned(SelectableUnit unit)
+        {
+            if (unit == null)
+                return false;
+
+            HealthSystem health = unit.GetComponent<HealthSystem>();
+
+            if (health == null)
+                health = unit.GetComponentInParent<HealthSystem>();
+
+            return health != null &&
+                   health.TeamFaction == Faction.Blue;
+        }
+
         public void ClearSelection()
         {
             for (int i = 0; i < _selectedUnits.Count; i++)
             {
-                SelectableUnit unit = _selectedUnits[i];
-
-                if (unit != null)
-                    unit.SetSelected(false);
+                if (_selectedUnits[i] != null)
+                    _selectedUnits[i].SetSelected(false);
             }
 
             _selectedUnits.Clear();
@@ -55,10 +69,10 @@ namespace AoEMini.Selection
 
         public void SelectSingle(SelectableUnit unit)
         {
-            if (unit == null)
-                return;
-
             ClearSelection();
+
+            if (!IsPlayerOwned(unit))
+                return;
 
             unit.SetSelected(true);
             _selectedUnits.Add(unit);
@@ -89,7 +103,7 @@ namespace AoEMini.Selection
             {
                 SelectableUnit unit = units[i];
 
-                if (unit == null)
+                if (!IsPlayerOwned(unit))
                     continue;
 
                 Vector3 screenPosition =
@@ -114,6 +128,10 @@ namespace AoEMini.Selection
             NotifySelectionCompleted();
         }
 
+        /// <summary>
+        /// Dùng cho ArmyHotkeySystem và các hệ thống chọn theo danh sách.
+        /// Vẫn lọc phe để không thể chọn nhầm unit Red.
+        /// </summary>
         public void SelectUnits(IReadOnlyList<SelectableUnit> units)
         {
             ClearSelection();
@@ -125,7 +143,7 @@ namespace AoEMini.Selection
             {
                 SelectableUnit unit = units[i];
 
-                if (unit == null)
+                if (!IsPlayerOwned(unit))
                     continue;
 
                 unit.SetSelected(true);
@@ -135,9 +153,6 @@ namespace AoEMini.Selection
             NotifySelectionCompleted();
         }
 
-        /// <summary>
-        /// Không thông báo nếu danh sách chọn rỗng.
-        /// </summary>
         private void NotifySelectionCompleted()
         {
             if (_selectedUnits.Count > 0)

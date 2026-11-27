@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 6349710584691238102}
   - component: {fileID: 1108811367119517603}
   - component: {fileID: 8520194829104859183}
+  - component: {fileID: 214382086885177080}
   m_Layer: 11
   m_Name: RedCastle
   m_TagString: Untagged
@@ -186,3 +187,24 @@ MonoBehaviour:
   dropOffPoint: {fileID: 0}
   pawnData: {fileID: 11400000, guid: da0076931c7782f4285c1e4eaaeefa45, type: 2}
   spawnSpacing: 0.6
+  pawnSpawnDelay: 5
+  maxQueueSize: 5
+  spawnStartingPawns: 0
+  startingPawnCount: 4
+  pawnBlueController: {fileID: 0}
+  pawnRedController: {fileID: 0}
+--- !u!114 &214382086885177080
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5793857773487302034}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 824b952ba7f41294d8cce478fb024fd3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _visibleInExploredFog: 1
+  _hideMinimapMarkerInFog: 1
+  _extraVisualObjects: []

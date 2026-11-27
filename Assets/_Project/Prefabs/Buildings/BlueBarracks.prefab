@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: -8280863107562978309}
   - component: {fileID: 6386052554143653810}
   - component: {fileID: 8520194829104859186}
+  - component: {fileID: 3576424719702676014}
   m_Layer: 11
   m_Name: BlueBarracks
   m_TagString: Untagged
@@ -175,3 +176,18 @@ MonoBehaviour:
   spawnPoint: {fileID: 0}
   spawnOffsetDistance: 1.8
   maxQueueSize: 5
+--- !u!114 &3576424719702676014
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3808703310586513681}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aedadc8c2c8a5934989c1e63c39f022f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _visionRadius: 8
+  _ownerFaction: 1
+  _syncFromUnitData: 0

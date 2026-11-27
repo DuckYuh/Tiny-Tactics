@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 5961440717736980981}
   - component: {fileID: 797653074796158837}
   - component: {fileID: 8520194829104859182}
+  - component: {fileID: -1243763640119106015}
   m_Layer: 11
   m_Name: BlueCastle
   m_TagString: Untagged
@@ -186,3 +187,24 @@ MonoBehaviour:
   dropOffPoint: {fileID: 0}
   pawnData: {fileID: 11400000, guid: da0076931c7782f4285c1e4eaaeefa45, type: 2}
   spawnSpacing: 0.6
+  pawnSpawnDelay: 5
+  maxQueueSize: 5
+  spawnStartingPawns: 0
+  startingPawnCount: 4
+  pawnBlueController: {fileID: 0}
+  pawnRedController: {fileID: 0}
+--- !u!114 &-1243763640119106015
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1670688583012166011}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aedadc8c2c8a5934989c1e63c39f022f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _visionRadius: 12
+  _ownerFaction: 1
+  _syncFromUnitData: 0

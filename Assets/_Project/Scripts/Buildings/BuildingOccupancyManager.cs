@@ -154,5 +154,47 @@ namespace TinyTactics.Buildings
                 occupiedBuildings.ContainsKey(
                     building.GetInstanceID());
         }
+
+        /// <summary>
+        /// Kiểm tra có công trình nào nằm trong khoảng cách Grid yêu cầu.
+        /// </summary>
+        public bool IsTooCloseToAnotherBuilding(
+            BuildingData data,
+            Vector3 anchorWorldPosition,
+            int minimumGap = 1)
+        {
+            if (data == null || minimumGap < 0)
+                return true;
+
+            PathfindingGrid grid = PathfindingGrid.Instance;
+
+            if (grid == null)
+                return true;
+
+            grid.GetGridCoordinates(
+                anchorWorldPosition,
+                out int startX,
+                out int startY);
+
+            Vector2Int footprint = data.Footprint;
+            int minX = startX - minimumGap;
+            int maxX = startX + footprint.x - 1 + minimumGap;
+            int minY = startY - minimumGap;
+            int maxY = startY + footprint.y - 1 + minimumGap;
+
+            foreach (List<Vector2Int> cells in occupiedBuildings.Values)
+            {
+                foreach (Vector2Int cell in cells)
+                {
+                    if (cell.x >= minX && cell.x <= maxX &&
+                        cell.y >= minY && cell.y <= maxY)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
     }
 }

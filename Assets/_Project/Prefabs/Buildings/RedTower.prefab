@@ -12,6 +12,9 @@ GameObject:
   - component: {fileID: 4554533158205096232}
   - component: {fileID: 6757104417880954817}
   - component: {fileID: -738101813614319840}
+  - component: {fileID: 7936537795708204035}
+  - component: {fileID: -8068816751554616064}
+  - component: {fileID: 3109818232859179316}
   m_Layer: 11
   m_Name: RedTower
   m_TagString: Untagged
@@ -129,7 +132,7 @@ BoxCollider2D:
     adaptiveTiling: 0
   m_AutoTiling: 0
   serializedVersion: 2
-  m_Size: {x: 2, y: 2}
+  m_Size: {x: 1, y: 2}
   m_EdgeRadius: 0
 --- !u!114 &-738101813614319840
 MonoBehaviour:
@@ -146,3 +149,55 @@ MonoBehaviour:
   targetType: 1
   factionId: Red
   markerPosition: {fileID: 0}
+--- !u!114 &7936537795708204035
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9053222321023340351}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 824b952ba7f41294d8cce478fb024fd3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _visibleInExploredFog: 1
+  _hideMinimapMarkerInFog: 1
+  _extraVisualObjects: []
+--- !u!114 &-8068816751554616064
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9053222321023340351}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aedadc8c2c8a5934989c1e63c39f022f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _visionRadius: 11
+  _ownerFaction: 2
+  _syncFromUnitData: 1
+--- !u!114 &3109818232859179316
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9053222321023340351}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d17d55bc6cddc08498ac9a92ddf321a7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  buildingName: Building
+  factionId: Blue
+  maxHP: 500
+  currentHP: 0
+  buildingGridSize: {x: 1, y: 2}
+  rallyPoint: {fileID: 0}
+  cameraShakeDuration: 0.25
+  cameraShakeMagnitude: 0.15
+  destructionEffectPrefab: {fileID: 0}
+  _visionRadius: 11

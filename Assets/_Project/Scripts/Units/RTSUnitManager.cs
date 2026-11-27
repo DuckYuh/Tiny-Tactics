@@ -4,6 +4,7 @@ using UnityEngine;
 using AoEMini.Selection;
 using TinyTactics.Combat;
 using TinyTactics.Economy;
+using TinyTactics.Factions;
 
 namespace TinyTactics.Units
 {
@@ -129,24 +130,47 @@ namespace TinyTactics.Units
 
         private List<UnitController> CollectSelectedUnitControllers()
         {
-            List<UnitController> activeUnits = new List<UnitController>();
+            List<UnitController> activeUnits = new();
+
             if (SelectionSystem.Instance == null)
                 return activeUnits;
 
-            IReadOnlyList<SelectableUnit> selectedSelectables = SelectionSystem.Instance.SelectedUnits;
+            IReadOnlyList<SelectableUnit> selectedSelectables =
+                SelectionSystem.Instance.SelectedUnits;
+
             for (int i = 0; i < selectedSelectables.Count; i++)
             {
-                if (selectedSelectables[i] == null)
+                SelectableUnit selectable = selectedSelectables[i];
+
+                if (!IsPlayerOwned(selectable))
                     continue;
 
-                UnitController controller = selectedSelectables[i].GetComponent<UnitController>();
+                UnitController controller =
+                    selectable.GetComponent<UnitController>();
+
                 if (controller != null)
-                {
                     activeUnits.Add(controller);
-                }
             }
 
             return activeUnits;
+        }
+
+        /// <summary>
+        /// Kiểm tra unit có thuộc quyền điều khiển của Player hay không.
+        /// Player hiện tại sử dụng phe Blue.
+        /// </summary>
+        private bool IsPlayerOwned(SelectableUnit unit)
+        {
+            if (unit == null)
+                return false;
+
+            HealthSystem health = unit.GetComponent<HealthSystem>();
+
+            if (health == null)
+                health = unit.GetComponentInParent<HealthSystem>();
+
+            return health != null &&
+                   health.TeamFaction == Faction.Blue;
         }
 
         /// <summary>
@@ -216,7 +240,7 @@ namespace TinyTactics.Units
             {
                 SelectableUnit selected = selectedUnits[i];
 
-                if (selected == null)
+                if (!IsPlayerOwned(selected))
                     continue;
 
                 // Chỉ nông dân mới được thực hiện lệnh khai thác.
