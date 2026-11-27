@@ -15,7 +15,7 @@ namespace TinyTactics.Pathfinding
         [SerializeField] private int gridHeight = 100;
         [SerializeField] private float cellSize = 1f;
         [SerializeField] private Vector3 originPosition = Vector3.zero;
-        
+
         [Header("Obstacle Detection")]
         [SerializeField] private LayerMask obstacleLayerMask;
 
@@ -55,10 +55,10 @@ namespace TinyTactics.Pathfinding
                 {
                     // Lấy tọa độ tâm của ô
                     Vector3 worldPos = GetWorldPosition(x, y) + new Vector3(cellSize / 2, cellSize / 2, 0);
-                    
+
                     // Box size nhỏ hơn cellSize 1 chút (0.9f) để tránh dính biên tường ngoài ý muốn
                     bool isObstacle = Physics2D.OverlapBox(worldPos, new Vector2(cellSize * 0.9f, cellSize * 0.9f), 0f, obstacleLayerMask);
-                    
+
                     gridArray[x, y] = new PathNode(x, y, worldPos, !isObstacle);
                 }
             }
@@ -108,6 +108,79 @@ namespace TinyTactics.Pathfinding
             if (node != null)
             {
                 node.isWalkable = isWalkable;
+            }
+        }
+
+        /// <summary>
+        /// Cập nhật lại các ô Grid nằm trong vùng bị ảnh hưởng
+        /// khi một obstacle động bị xóa.
+        /// Kiểm tra Physics2D để tránh mở nhầm ô vẫn còn vật cản.
+        /// </summary>
+        public void RefreshObstacleNodes(Bounds changedBounds)
+        {
+            if (gridArray == null)
+                return;
+
+            // Mở rộng vùng tìm kiếm để không bỏ sót các ô lân cận.
+            Vector3 padding = new Vector3(cellSize, cellSize, 0f);
+
+            GetGridCoordinates(
+                changedBounds.min - padding,
+                out int minX,
+                out int minY
+            );
+
+            GetGridCoordinates(
+                changedBounds.max + padding,
+                out int maxX,
+                out int maxY
+            );
+
+            // Giới hạn phạm vi trong Grid.
+            minX = Mathf.Clamp(minX, 0, gridWidth - 1);
+            maxX = Mathf.Clamp(maxX, 0, gridWidth - 1);
+
+            minY = Mathf.Clamp(minY, 0, gridHeight - 1);
+            maxY = Mathf.Clamp(maxY, 0, gridHeight - 1);
+
+            float halfCell = cellSize * 0.45f;
+
+            Vector2 checkSize = new Vector2(
+                cellSize * 0.9f,
+                cellSize * 0.9f
+            );
+
+            for (int x = minX; x <= maxX; x++)
+            {
+                for (int y = minY; y <= maxY; y++)
+                {
+                    PathNode node = gridArray[x, y];
+
+                    if (node == null)
+                        continue;
+
+                    // Chỉ cập nhật những ô thực sự giao với vùng collider cũ.
+                    bool overlapsX =
+                        changedBounds.max.x >= node.worldPosition.x - halfCell &&
+                        changedBounds.min.x <= node.worldPosition.x + halfCell;
+
+                    bool overlapsY =
+                        changedBounds.max.y >= node.worldPosition.y - halfCell &&
+                        changedBounds.min.y <= node.worldPosition.y + halfCell;
+
+                    if (!overlapsX || !overlapsY)
+                        continue;
+
+                    // Kiểm tra xem còn collider nào thuộc obstacle layer không.
+                    bool isObstacle = Physics2D.OverlapBox(
+                        node.worldPosition,
+                        checkSize,
+                        0f,
+                        obstacleLayerMask
+                    ) != null;
+
+                    node.isWalkable = !isObstacle;
+                }
             }
         }
 
