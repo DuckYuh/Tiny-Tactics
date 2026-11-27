@@ -120,11 +120,22 @@ namespace TinyTactics.AI
                 gridX,
                 gridY);
 
-            return BuildingPlacementValidator.TryValidatePlacement(
-                buildingData,
-                anchorPosition,
-                out _,
-                out _);
+            if (!BuildingPlacementValidator.TryValidatePlacement(
+                    buildingData,
+                    anchorPosition,
+                    out _,
+                    out _))
+            {
+                return false;
+            }
+
+            BuildingOccupancyManager occupancy =
+                BuildingOccupancyManager.Instance;
+
+            return occupancy != null &&
+                !occupancy.IsTooCloseToAnotherBuilding(
+                    buildingData,
+                    anchorPosition);
         }
     }
 }

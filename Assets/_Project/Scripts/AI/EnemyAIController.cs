@@ -58,6 +58,13 @@ namespace TinyTactics.AI
         [Tooltip("Số lượng nông dân mục tiêu của phe Red")]
         [SerializeField, Min(1)] private int _targetWorkerCount = 5;
 
+        [Header("Dynamic Worker Settings")]
+        [SerializeField, Min(1)] private int _minWorkerCount = 4;
+
+        [SerializeField, Min(1)] private int _maxWorkerCount = 12;
+
+        [SerializeField, Min(0.1f)] private float _workerGrowthMultiplier = 8f;
+
         [Tooltip("Số lượng quân tối thiểu để bắt đầu đợt tấn công đầu tiên")]
         [SerializeField, Min(1)] private int _attackWaveSize = 6;
 
@@ -161,6 +168,57 @@ namespace TinyTactics.AI
             return false;
         }
 
+        /// <summary>
+        /// Tính số Worker mục tiêu dựa trên mức thiếu hụt tài nguyên.
+        /// Thiếu tài nguyên càng nhiều thì AI càng cần thêm Worker.
+        /// </summary>
+        private int CalculateDynamicWorkerTarget()
+        {
+            ResourceManager resourceManager = ResourceManager.Instance;
+
+            if (resourceManager == null)
+                return _targetWorkerCount;
+
+            float meatShortage = CalculateShortageRatio(
+                resourceManager.GetResourceAmount(_aiFaction, ResourceType.Meat),
+                _targetMeatStock);
+
+            float woodShortage = CalculateShortageRatio(
+                resourceManager.GetResourceAmount(_aiFaction, ResourceType.Wood),
+                _targetWoodStock);
+
+            float goldShortage = CalculateShortageRatio(
+                resourceManager.GetResourceAmount(_aiFaction, ResourceType.Gold),
+                _targetGoldStock);
+
+            // Lấy mức thiếu hụt lớn nhất để tránh tăng Worker quá nhanh
+            // chỉ vì một loại tài nguyên đang thiếu.
+            float maxShortage = Mathf.Max(
+                meatShortage,
+                woodShortage,
+                goldShortage);
+
+            int additionalWorkers = Mathf.RoundToInt(
+                maxShortage * _workerGrowthMultiplier);
+
+            return Mathf.Clamp(
+                _targetWorkerCount + additionalWorkers,
+                _minWorkerCount,
+                _maxWorkerCount);
+        }
+
+        /// <summary>
+        /// Trả về tỷ lệ thiếu hụt từ 0 đến 1.
+        /// </summary>
+        private float CalculateShortageRatio(int currentStock, int targetStock)
+        {
+            if (targetStock <= 0)
+                return 0f;
+
+            return 1f - Mathf.Clamp01(
+                (float)currentStock / targetStock);
+        }
+
         private void ExecuteDecisionTick()
         {
             CleanupDeadUnits();
@@ -174,11 +232,16 @@ namespace TinyTactics.AI
             switch (_currentState)
             {
                 case AIState.EconomyFocus:
-                    if (_workers.Count >= Mathf.Min(3, _targetWorkerCount) || CanAffordAnyMilitaryUnit())
                     {
-                        _currentState = AIState.MilitaryProduction;
+                        int dynamicTarget = CalculateDynamicWorkerTarget();
+
+                        if (_workers.Count >= dynamicTarget)
+                        {
+                            _currentState = AIState.MilitaryProduction;
+                        }
+
+                        break;
                     }
-                    break;
 
                 case AIState.MilitaryProduction:
                     TrainMilitaryUnits();
@@ -353,10 +416,22 @@ namespace TinyTactics.AI
 
         private void MaintainEconomy()
         {
-            if (_enemyCastle != null && !_enemyCastle.IsDestroyed && _pawnData != null)
+            if (_enemyCastle != null &&
+                !_enemyCastle.IsDestroyed &&
+                _pawnData != null)
             {
-                int totalWorkers = _workers.Count + _enemyCastle.CurrentPawnQueueCount;
-                if (totalWorkers < _targetWorkerCount && _enemyCastle.CanSpawnPawn())
+                int dynamicTarget = CalculateDynamicWorkerTarget();
+
+                int totalWorkers =
+                    _workers.Count + _enemyCastle.CurrentPawnQueueCount;
+
+                bool hasQueueSpace =
+                    _enemyCastle.CurrentPawnQueueCount <
+                    _enemyCastle.MaxPawnQueueSize;
+
+                if (totalWorkers < dynamicTarget &&
+                    hasQueueSpace &&
+                    _enemyCastle.CanSpawnPawn())
                 {
                     _enemyCastle.TrySpawnPawn();
                 }
@@ -664,22 +739,37 @@ namespace TinyTactics.AI
                 return;
 
             _attackingSquad.Clear();
+
             Vector3 targetPos = _playerCastle.transform.position;
 
             for (int i = 0; i < _soldiers.Count; i++)
             {
+                if (_attackingSquad.Count >= _attackWaveSize)
+                    break;
+
                 UnitCombatController soldier = _soldiers[i];
+
                 if (!IsSoldierAlive(soldier))
+                    continue;
+
+                if (_attackingSquad.Contains(soldier))
+                    continue;
+
+                if (soldier.OrderMode != CombatOrderMode.IdleDefend)
                     continue;
 
                 _attackingSquad.Add(soldier);
                 soldier.AttackMoveTo(targetPos);
             }
 
-            if (_attackingSquad.Count > 0)
+            if (_attackingSquad.Count >= _attackWaveSize)
             {
                 _currentState = AIState.Attacking;
-                Debug.Log($"[EnemyAI] Phe {_aiFaction} phát động đợt tấn công với {_attackingSquad.Count} quân!");
+
+                Debug.Log(
+                    $"[EnemyAI] Phe {_aiFaction} phát động đợt tấn công " +
+                    $"với {_attackingSquad.Count} quân!"
+                );
             }
         }
 
@@ -717,16 +807,21 @@ namespace TinyTactics.AI
         private int CountIdleStagingSoldiers()
         {
             int count = 0;
+
             for (int i = 0; i < _soldiers.Count; i++)
             {
                 UnitCombatController soldier = _soldiers[i];
+
                 if (!IsSoldierAlive(soldier))
                     continue;
 
-                if (!_attackingSquad.Contains(soldier))
-                {
-                    count++;
-                }
+                if (_attackingSquad.Contains(soldier))
+                    continue;
+
+                if (soldier.OrderMode != CombatOrderMode.IdleDefend)
+                    continue;
+
+                count++;
             }
 
             return count;
