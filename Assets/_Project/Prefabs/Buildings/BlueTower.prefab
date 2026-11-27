@@ -179,7 +179,7 @@ MonoBehaviour:
   factionId: Blue
   maxHP: 500
   currentHP: 0
-  buildingGridSize: {x: 2, y: 2}
+  buildingGridSize: {x: 1, y: 2}
   rallyPoint: {fileID: 0}
   cameraShakeDuration: 0.25
   cameraShakeMagnitude: 0.15

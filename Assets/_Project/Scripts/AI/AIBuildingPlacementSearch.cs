@@ -24,13 +24,16 @@ namespace TinyTactics.AI
             Vector3 castlePosition,
             BuildingData buildingData,
             out Vector3 anchorPosition,
-            int maxSearchRadius = 12)
+            int maxSearchRadius = 12,
+            int minSearchRadius = 5)
         {
             anchorPosition = Vector3.zero;
 
             if (buildingData == null ||
                 !buildingData.IsValid() ||
-                maxSearchRadius <= 0)
+                maxSearchRadius <= 0 ||
+                minSearchRadius < 1 ||
+                minSearchRadius > maxSearchRadius)
             {
                 return false;
             }
@@ -40,18 +43,16 @@ namespace TinyTactics.AI
             if (grid == null)
                 return false;
 
-            // Chuyển vị trí Castle thành tọa độ Grid.
             grid.GetGridCoordinates(
                 castlePosition,
                 out int centerX,
                 out int centerY);
 
-            // Quét từng vòng vuông từ trong ra ngoài.
-            for (int radius = 1;
+            // Không xây công trình trong vùng gần Castle.
+            for (int radius = minSearchRadius;
                  radius <= maxSearchRadius;
                  radius++)
             {
-                // Cạnh dưới và cạnh trên.
                 for (int x = -radius; x <= radius; x++)
                 {
                     if (TryCandidate(
@@ -75,8 +76,6 @@ namespace TinyTactics.AI
                     }
                 }
 
-                // Cạnh trái và cạnh phải.
-                // Bỏ qua hai góc vì đã kiểm tra ở trên.
                 for (int y = -radius + 1;
                      y < radius;
                      y++)

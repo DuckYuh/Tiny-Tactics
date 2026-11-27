@@ -37,6 +37,20 @@ namespace TinyTactics.AI
         [SerializeField] private UnitDataSO _archerData;
         [SerializeField] private UnitDataSO _lancerData;
 
+        [Header("AI Building Settings")]
+        [SerializeField] private BuildingData _houseData;
+        [SerializeField] private BuildingData _barracksData;
+        [SerializeField] private BuildingData _towerData;
+
+        [Tooltip("Số Barracks tối đa AI được phép xây")]
+        [SerializeField, Min(1)] private int _maxBarracks = 2;
+
+        [Tooltip("Số lượng dân dự phòng trước khi AI xây House")]
+        [SerializeField, Min(1)] private int _populationBuffer = 1;
+
+        [Tooltip("Thời gian chờ trước khi thử xây lại")]
+        [SerializeField, Min(1f)] private float _buildingRetryInterval = 5f;
+
         [Header("FSM Settings")]
         [Tooltip("Chu kỳ ra quyết định của AI (giây)")]
         [SerializeField, Min(0.2f)] private float _decisionInterval = 1.0f;
@@ -53,6 +67,19 @@ namespace TinyTactics.AI
         [Tooltip("Bán kính quét mỏ tài nguyên xung quanh căn cứ Red")]
         [SerializeField, Min(5f)] private float _resourceSearchRadius = 50f;
 
+        [Header("Economy Resource Targets")]
+        [Tooltip("Lượng Meat AI muốn duy trì")]
+        [SerializeField, Min(1)] private int _targetMeatStock = 200;
+
+        [Tooltip("Lượng Wood AI muốn duy trì")]
+        [SerializeField, Min(1)] private int _targetWoodStock = 300;
+
+        [Tooltip("Lượng Gold AI muốn duy trì")]
+        [SerializeField, Min(1)] private int _targetGoldStock = 150;
+
+        [Tooltip("Mức ảnh hưởng của số Worker đang khai thác đến quyết định phân bổ")]
+        [SerializeField, Range(0.01f, 1f)] private float _workerBalanceWeight = 0.15f;
+
         [Header("Runtime Info - Read Only")]
         [SerializeField] private AIState _currentState = AIState.EconomyFocus;
         [SerializeField] private int _aliveWorkersCount;
@@ -61,6 +88,12 @@ namespace TinyTactics.AI
         private readonly List<WorkerFSM> _workers = new List<WorkerFSM>();
         private readonly List<UnitCombatController> _soldiers = new List<UnitCombatController>();
         private readonly List<UnitCombatController> _attackingSquad = new List<UnitCombatController>();
+
+        // Danh sách công trình thuộc phe AI.
+        private readonly List<HouseBuilding> _enemyHouses = new List<HouseBuilding>();
+
+        // Thời điểm sớm nhất AI được phép thử xây công trình tiếp theo.
+        private float _nextBuildingAttemptTime;
 
         private Coroutine _aiLoopCoroutine;
         private WaitForSeconds _waitInterval;
@@ -136,6 +169,7 @@ namespace TinyTactics.AI
 
             // Luôn duy trì kinh tế (đẻ nông dân nếu thiếu + điều phối nông dân Idle đi khai thác).
             MaintainEconomy();
+            MaintainBuildings();
 
             switch (_currentState)
             {
@@ -159,6 +193,162 @@ namespace TinyTactics.AI
                     MaintainAttackingWave();
                     break;
             }
+        }
+
+        /// <summary>
+        /// Duy trì hệ thống công trình của AI.
+        /// Ưu tiên mở rộng sức chứa dân số trước khi xây thêm Barracks.
+        /// </summary>
+        private void MaintainBuildings()
+        {
+            if (_enemyCastle == null || _enemyCastle.IsDestroyed)
+                return;
+
+            if (Time.time < _nextBuildingAttemptTime)
+                return;
+
+            PopulationManager population = PopulationManager.Instance;
+
+            if (population == null)
+                return;
+
+            int currentPopulation = population.GetCurrentPopulation(_aiFaction);
+            int maxPopulation = population.GetMaxPopulation(_aiFaction);
+
+            // Ưu tiên House khi dân số sắp chạm giới hạn.
+            bool needsHouse =
+                maxPopulation > 0 &&
+                currentPopulation + _populationBuffer >= maxPopulation;
+
+            if (needsHouse)
+            {
+                TryBuildBuilding(_houseData);
+                return;
+            }
+
+            // Chỉ xây thêm Barracks khi chưa đạt giới hạn.
+            int barracksCount = CountOwnedBarracks();
+
+            if (barracksCount < _maxBarracks)
+            {
+                TryBuildBuilding(_barracksData);
+            }
+        }
+
+        /// <summary>
+        /// Đếm số Barracks còn tồn tại thuộc phe AI.
+        /// </summary>
+        private int CountOwnedBarracks()
+        {
+            int count = 0;
+
+            for (int i = _enemyBarracks.Count - 1; i >= 0; i--)
+            {
+                BarracksBuilding barracks = _enemyBarracks[i];
+
+                if (barracks == null || barracks.IsDestroyed)
+                {
+                    _enemyBarracks.RemoveAt(i);
+                    continue;
+                }
+
+                if (barracks.TeamFaction == _aiFaction)
+                {
+                    count++;
+                }
+            }
+
+            return count;
+        }
+
+        /// <summary>
+        /// Tìm vị trí hợp lệ và đặt công trình bằng BuildingPlacementService.
+        /// Service chịu trách nhiệm kiểm tra vị trí và trừ tài nguyên.
+        /// </summary>
+        private bool TryBuildBuilding(BuildingData buildingData)
+        {
+            if (buildingData == null ||
+                ResourceManager.Instance == null ||
+                _enemyCastle == null)
+            {
+                return false;
+            }
+
+            ResourceManager resourceManager = ResourceManager.Instance;
+
+            // Không tìm vị trí nếu AI chưa đủ gỗ.
+            int availableWood = resourceManager.GetResourceAmount(
+                _aiFaction,
+                ResourceType.Wood);
+
+            if (availableWood < buildingData.WoodCost)
+                return false;
+
+            // Bắt đầu cooldown ngay khi thử xây, kể cả khi thất bại.
+            _nextBuildingAttemptTime = Time.time + _buildingRetryInterval;
+
+            // Tìm vị trí đặt gần Castle nhất.
+            if (!AIBuildingPlacementSearch.TryFindPlacement(
+                    _enemyCastle.transform.position,
+                    buildingData,
+                    out Vector3 anchorPosition))
+            {
+                Debug.LogWarning(
+                    $"[EnemyAI] Không tìm được vị trí xây {buildingData.BuildingName}.");
+
+                return false;
+            }
+
+            // Dùng chung service với Player.
+            // Chỉ trừ gỗ của phe Red.
+            bool placed = BuildingPlacementService.TryPlace(
+                buildingData,
+                _aiFaction.ToString(),
+                anchorPosition,
+                woodCost => resourceManager.ConsumeResource(
+                    _aiFaction,
+                    ResourceType.Wood,
+                    woodCost),
+                out GameObject buildingInstance);
+
+            if (!placed || buildingInstance == null)
+            {
+                Debug.LogWarning(
+                    $"[EnemyAI] Xây {buildingData.BuildingName} thất bại.");
+
+                return false;
+            }
+
+            // Đăng ký công trình vừa xây để AI quản lý tiếp.
+            if (buildingData == _houseData)
+            {
+                HouseBuilding house = buildingInstance.GetComponent<HouseBuilding>();
+
+                if (house != null && !_enemyHouses.Contains(house))
+                {
+                    _enemyHouses.Add(house);
+                }
+            }
+            else if (buildingData == _barracksData)
+            {
+                BarracksBuilding barracks =
+                    buildingInstance.GetComponent<BarracksBuilding>();
+
+                if (barracks != null && !_enemyBarracks.Contains(barracks))
+                {
+                    _enemyBarracks.Add(barracks);
+
+                    if (_rallyPoint != null)
+                    {
+                        barracks.SetRallyPoint(_rallyPoint.position);
+                    }
+                }
+            }
+
+            Debug.Log(
+                $"[EnemyAI] Phe {_aiFaction} đã xây {buildingData.BuildingName}.");
+
+            return true;
         }
 
         private void MaintainEconomy()
@@ -198,26 +388,35 @@ namespace TinyTactics.AI
 
         private ResourceDeposit FindBalancedResourceDeposit(Vector3 basePos)
         {
+            if (MapResourceManager.Instance == null)
+                return null;
+
             ResourceType preferredType = PickBalancedResourceType();
-            ResourceDeposit deposit = MapResourceManager.Instance.GetClosestResource(
+
+            // Ưu tiên loại tài nguyên AI đang cần.
+            ResourceDeposit deposit = FindLeastOccupiedDeposit(
                 basePos,
-                preferredType,
-                _resourceSearchRadius);
+                preferredType);
 
             if (deposit != null)
                 return deposit;
 
-            // Nếu loại ưu tiên đã hết quanh căn cứ, fallback sang các loại còn lại.
-            ResourceType[] fallbackOrder = { ResourceType.Meat, ResourceType.Wood, ResourceType.Gold };
+            // Nếu không còn mỏ thuộc loại ưu tiên, thử các loại còn lại.
+            ResourceType[] fallbackOrder =
+            {
+        ResourceType.Meat,
+        ResourceType.Wood,
+        ResourceType.Gold
+    };
+
             for (int i = 0; i < fallbackOrder.Length; i++)
             {
                 if (fallbackOrder[i] == preferredType)
                     continue;
 
-                deposit = MapResourceManager.Instance.GetClosestResource(
+                deposit = FindLeastOccupiedDeposit(
                     basePos,
-                    fallbackOrder[i],
-                    _resourceSearchRadius);
+                    fallbackOrder[i]);
 
                 if (deposit != null)
                     return deposit;
@@ -226,8 +425,90 @@ namespace TinyTactics.AI
             return null;
         }
 
+        /// <summary>
+        /// Chọn mỏ có ít Worker được phân công nhất.
+        /// Nếu số Worker bằng nhau, ưu tiên mỏ gần căn cứ hơn.
+        /// </summary>
+        private ResourceDeposit FindLeastOccupiedDeposit(
+            Vector3 basePos,
+            ResourceType resourceType)
+        {
+            IReadOnlyList<ResourceDeposit> deposits =
+                MapResourceManager.Instance.AllResources;
+
+            ResourceDeposit bestDeposit = null;
+            int lowestWorkerCount = int.MaxValue;
+            float shortestDistanceSqr = _resourceSearchRadius * _resourceSearchRadius;
+
+            for (int i = 0; i < deposits.Count; i++)
+            {
+                ResourceDeposit deposit = deposits[i];
+
+                if (deposit == null ||
+                    deposit.currentAmount <= 0 ||
+                    deposit.resourceType != resourceType)
+                {
+                    continue;
+                }
+
+                float distanceSqr =
+                    (deposit.transform.position - basePos).sqrMagnitude;
+
+                if (distanceSqr > _resourceSearchRadius * _resourceSearchRadius)
+                    continue;
+
+                int assignedWorkers = CountWorkersAssignedToDeposit(deposit);
+
+                bool isBetter =
+                    assignedWorkers < lowestWorkerCount ||
+                    (assignedWorkers == lowestWorkerCount &&
+                     distanceSqr < shortestDistanceSqr);
+
+                if (!isBetter)
+                    continue;
+
+                bestDeposit = deposit;
+                lowestWorkerCount = assignedWorkers;
+                shortestDistanceSqr = distanceSqr;
+            }
+
+            return bestDeposit;
+        }
+
+        /// <summary>
+        /// Đếm số Worker đang giữ mỏ này làm mục tiêu.
+        /// Bao gồm cả Worker đang di chuyển, khai thác và quay về Castle.
+        /// </summary>
+        private int CountWorkersAssignedToDeposit(ResourceDeposit deposit)
+        {
+            int count = 0;
+
+            for (int i = 0; i < _workers.Count; i++)
+            {
+                WorkerFSM worker = _workers[i];
+
+                if (worker == null)
+                    continue;
+
+                if (worker.TargetResource == deposit)
+                    count++;
+            }
+
+            return count;
+        }
+
+        /// <summary>
+        /// Chọn loại tài nguyên cần khai thác dựa trên:
+        /// - Tỷ lệ thiếu hụt so với lượng dự trữ mục tiêu.
+        /// - Số Worker hiện đang được phân công khai thác loại đó.
+        /// </summary>
         private ResourceType PickBalancedResourceType()
         {
+            ResourceManager resourceManager = ResourceManager.Instance;
+
+            if (resourceManager == null)
+                return ResourceType.Wood;
+
             int meatWorkers = 0;
             int woodWorkers = 0;
             int goldWorkers = 0;
@@ -235,6 +516,7 @@ namespace TinyTactics.AI
             for (int i = 0; i < _workers.Count; i++)
             {
                 WorkerFSM worker = _workers[i];
+
                 if (worker == null || worker.CurrentState == WorkerState.Idle)
                     continue;
 
@@ -243,32 +525,62 @@ namespace TinyTactics.AI
                     case ResourceType.Meat:
                         meatWorkers++;
                         break;
+
                     case ResourceType.Wood:
                         woodWorkers++;
                         break;
+
                     case ResourceType.Gold:
                         goldWorkers++;
                         break;
                 }
             }
 
-            ResourceManager res = ResourceManager.Instance;
-            int meatStock = res != null ? res.GetResourceAmount(_aiFaction, ResourceType.Meat) : 0;
-            int woodStock = res != null ? res.GetResourceAmount(_aiFaction, ResourceType.Wood) : 0;
-            int goldStock = res != null ? res.GetResourceAmount(_aiFaction, ResourceType.Gold) : 0;
+            int meatStock = resourceManager.GetResourceAmount(
+                _aiFaction, ResourceType.Meat);
 
-            // Ưu tiên tài nguyên có ít nông dân khai thác và trữ lượng đang thấp.
-            float meatScore = meatWorkers * 100f + meatStock * 0.1f;
-            float woodScore = woodWorkers * 100f + woodStock * 0.1f;
-            float goldScore = goldWorkers * 100f + goldStock * 0.1f;
+            int woodStock = resourceManager.GetResourceAmount(
+                _aiFaction, ResourceType.Wood);
 
-            if (meatScore <= woodScore && meatScore <= goldScore)
-                return ResourceType.Meat;
+            int goldStock = resourceManager.GetResourceAmount(
+                _aiFaction, ResourceType.Gold);
 
-            if (woodScore <= goldScore)
+            // Điểm càng cao thì loại tài nguyên càng cần được ưu tiên.
+            float meatScore = CalculateResourcePriority(
+                meatStock, _targetMeatStock, meatWorkers);
+
+            float woodScore = CalculateResourcePriority(
+                woodStock, _targetWoodStock, woodWorkers);
+
+            float goldScore = CalculateResourcePriority(
+                goldStock, _targetGoldStock, goldWorkers);
+
+            if (woodScore >= meatScore && woodScore >= goldScore)
                 return ResourceType.Wood;
 
+            if (meatScore >= goldScore)
+                return ResourceType.Meat;
+
             return ResourceType.Gold;
+        }
+
+        /// <summary>
+        /// Tính độ ưu tiên khai thác.
+        /// Kho càng thiếu thì điểm càng cao.
+        /// Nhiều Worker cùng khai thác thì điểm giảm.
+        /// </summary>
+        private float CalculateResourcePriority(
+            int currentStock,
+            int targetStock,
+            int assignedWorkers)
+        {
+            float stockRatio = Mathf.Clamp01(
+                (float)currentStock / Mathf.Max(1, targetStock));
+
+            float shortageScore = 1f - stockRatio;
+            float workerPenalty = assignedWorkers * _workerBalanceWeight;
+
+            return shortageScore - workerPenalty;
         }
 
         private void TrainMilitaryUnits()
@@ -533,6 +845,23 @@ namespace TinyTactics.AI
                     {
                         _enemyBarracks.Add(allBarracks[i]);
                     }
+                }
+            }
+
+            // Tìm các House thuộc phe AI đã được đặt sẵn trong Scene.
+            _enemyHouses.Clear();
+
+            HouseBuilding[] allHouses = FindObjectsOfType<HouseBuilding>();
+
+            for (int i = 0; i < allHouses.Length; i++)
+            {
+                HouseBuilding house = allHouses[i];
+
+                if (house != null &&
+                    !house.IsDestroyed &&
+                    house.TeamFaction == _aiFaction)
+                {
+                    _enemyHouses.Add(house);
                 }
             }
         }

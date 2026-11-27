@@ -7,6 +7,12 @@ namespace TinyTactics.Economy
     {
         public static MapResourceManager Instance { get; private set; }
 
+        /// <summary>
+        /// Danh sách tài nguyên hiện đang được quản lý trên bản đồ.
+        /// Chỉ đọc từ bên ngoài để tránh làm thay đổi dữ liệu đăng ký.
+        /// </summary>
+        public IReadOnlyList<ResourceDeposit> AllResources => allResources;
+
         private List<ResourceDeposit> allResources = new List<ResourceDeposit>();
 
         private void Awake()

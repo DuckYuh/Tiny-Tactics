@@ -58,6 +58,7 @@ namespace TinyTactics.Units
 
         public WorkerState CurrentState => currentState;
         public ResourceType CurrentResourceType => heldType;
+        public ResourceDeposit TargetResource => targetResource;
 
         public Faction WorkerFaction
         {
