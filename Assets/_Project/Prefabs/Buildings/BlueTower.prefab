@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 5635673370575024610}
   - component: {fileID: -2017074776472947916}
   - component: {fileID: -8838213141682477791}
+  - component: {fileID: 6907366980381565111}
   m_Layer: 11
   m_Name: BlueTower
   m_TagString: Untagged
@@ -162,3 +163,25 @@ MonoBehaviour:
   _visionRadius: 11
   _ownerFaction: 1
   _syncFromUnitData: 0
+--- !u!114 &6907366980381565111
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4170725871779657739}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d17d55bc6cddc08498ac9a92ddf321a7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  buildingName: Building
+  factionId: Blue
+  maxHP: 500
+  currentHP: 0
+  buildingGridSize: {x: 2, y: 2}
+  rallyPoint: {fileID: 0}
+  cameraShakeDuration: 0.25
+  cameraShakeMagnitude: 0.15
+  destructionEffectPrefab: {fileID: 0}
+  _visionRadius: 11
